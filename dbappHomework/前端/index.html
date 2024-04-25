@@ -1,0 +1,77 @@
+<head>
+    <meta charset="utf-8">
+    <link rel=stylesheet type="text/css" href="style/main.css">
+
+</head>
+
+<body>
+    <header>
+        <div class="top">
+            <img src="images/logo.png" height="100px" width="100px"></img>
+            <div class="textarea">
+                <div style="margin-left: 20px; color: rgb(134, 63, 63); font-weight: bolder;">
+                    基礎資料庫 Access Denied
+                </div>
+                <div style="font-size: 25px; margin-left: 25px; color: rgb(107, 127, 210); font-weight: bolder;">
+                    小組練習作業成果展示Web
+                </div>
+            </div>
+
+        </div>
+
+        <div class="main">
+            <div class="itemgroup">
+                <div class="item">Member簡易管理系統</div>
+            </div>
+        </div>
+    </header>
+    <div class="mid">
+        <div style="display: flex; flex-direction: column;">
+            <div style="display: flex; flex-direction: row;">
+                <div class="funarea" style="text-align: center;">
+                    <p>排序方式(按照序號)</p>
+                    <div style="text-align: center;">
+                        <button onclick="setSortMode('asc')">遞增</button>
+                        <button onclick="setSortMode('desc')">遞減</button>
+                    </div>
+                </div>
+                <div class="funarea">
+                    <p>輸入學號查詢資料</p>
+                    <div style="text-align: center; display: flex; flex-direction: row;">
+                        <input id="search" style="width: 80%; font-size: 20px; margin-right: 5px;" />
+                        <button onclick="findData(document.getElementById('search').value)">確定</button>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: row;">
+                <div class="funarea" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+                    <p>新增成員</p>
+                    <input id="userid" placeholder="學號" style="font-size: 20px; margin-bottom: 10px;" />
+                    <input id="username" placeholder="姓名" style="font-size: 20px; margin-bottom: 10px;" />
+                    <input id="useremail" placeholder="電子郵件" style="font-size: 20px; margin-bottom: 10px;" />
+                    <input id="usercontact" placeholder="電話" style="font-size: 20px; margin-bottom: 10px;" />
+                    <button onclick="createData()" style="width: 100%;">確定</button>
+                </div>
+                <div class="funarea" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+                    <p>修改成員</p>
+                    <input id="Cuserid" placeholder="學號" style="font-size: 20px; margin-bottom: 10px;" />
+                    <input id="Cusername" placeholder="姓名" style="font-size: 20px; margin-bottom: 10px;" />
+                    <input id="Cuseremail" placeholder="電子郵件" style="font-size: 20px; margin-bottom: 10px;" />
+                    <input id="Cusercontact" placeholder="電話" style="font-size: 20px; margin-bottom: 10px;" />
+                    <button onclick="updateData()" style="width: 100%;">確定</button>
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; flex-direction: column; margin-left: 10%;margin-right: 10%; align-items: center;">
+            <div id="content" class="content">
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        基礎資料庫 Access Denied © 2023 All rights reserved.
+    </footer>
+
+</body>
+<script src="js/main.js"></script>
