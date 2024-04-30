@@ -1,48 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>健身社交網站</title>
+    <title>主畫面 - 健出人生</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 40px;
+            padding-bottom: 40px;
+            background-image: url('background.png'); /* 背景圖片 */
+            background-size: cover;
+            color: white;
+            text-align: center;
+        }
+        .modal-content {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 20px;
+        }
+        .logo {
+            width: 200px; /* 調整標誌大小 */
+            height: auto;
+            margin-bottom: 20px;
+        }
+        .btn {
+            color: white; /* 設定按鈕文字顏色為白色 */
+            border: none; /* 移除邊框 */
+            margin: 5px; /* 邊界間隔 */
+            padding: 10px 20px; /* 內邊距 */
+            transition: background-color 0.3s ease; /* 過渡動畫 */
+        }
+        .btn-custom-login {
+            background-color: #343a40; /* 深灰色 */
+            color: white; /* 設定按鈕文字顏色為白色 */
+        }
+        .btn-custom-login:hover {
+            background-color: #23272b; /* 滑鼠懸停時變為更深的灰色 */
+            color: white; /* 滑鼠懸停時文字顏色保持白色 */
+        }
+        
+        .btn-custom-register {
+            background-color: #6c757d; /* 淺灰色 */
+            color: white; /* 設定按鈕文字顏色為白色 */
+        }
+        .btn-custom-register:hover {
+            background-color: #5a6268; /* 滑鼠懸停時變為更深的灰色 */
+            color: white; /* 滑鼠懸停時文字顏色保持白色 */
+        }
+        
+        h1, p {
+            /* 創建一個似乎均勻的黑色邊框效果 */
+            color: white;
+            text-shadow:
+                0 0 3px #000, /* 中心點擴散效果 */
+                1px 0 0 #000, /* 右 */
+                -1px 0 0 #000, /* 左 */
+                0 1px 0 #000, /* 下 */
+                0 -1px 0 #000, /* 上 */
+                1px 1px #000, /* 右下 */
+                -1px -1px 0 #000, /* 左上 */
+                1px -1px 0 #000, /* 右上 */
+                -1px 1px 0 #000; /* 左下 */
+        }
+        
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">Fitness Social</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Profile</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container mt-4">
-        {% for post in posts %}
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">{{ post.author }}</h5>
-                <p class="card-text">{{ post.body }}</p>
-                <a href="#" class="btn btn-primary">Like ({{ post.likes }})</a>
-                <hr>
-                <h6>Comments:</h6>
-                {% for comment in post.comments %}
-                <p><strong>{{ comment.author }}:</strong> {{ comment.body }}</p>
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
+    <div class="container">
+        <img src="logo.png" alt="Healthy Life Logo" class="logo"> <!-- 標誌 -->
+        <h1>健康生活從「健出人生」開始！</h1>
+        <p>我們是一個致力於健身社交的平台，旨在讓健身成為你生活中的樂趣和習慣。</p>
+        <!-- 登入和註冊按鈕 -->
+        <button class="btn btn-custom-login" onclick="location.href='login.html'">登入</button>
+        <button class="btn btn-custom-register" onclick="location.href='register.html'">註冊</button>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

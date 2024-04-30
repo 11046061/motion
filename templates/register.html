@@ -1,30 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>註冊 - 健出人生</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { padding-top: 40px; padding-bottom: 40px; background-color: #f5f5f5; }
-        .form-register { max-width: 330px; padding: 15px; margin: 0 auto; }
-        .form-register .form-register-heading, .form-register .checkbox { margin-bottom: 10px; }
-        .form-register .form-control { position: relative; height: auto; padding: 10px; font-size: 16px; }
-        .form-register input[type="email"], .form-register input[type="password"], .form-register input[type="text"], .form-register input[type="number"] { margin-bottom: 10px; }
+        body { 
+            margin: 0;
+            padding: 0;
+            background-image: url('background.png'); /* 您的背景圖片 */
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-blend-mode: overlay;
+            background-color: rgba(0, 0, 0, 0.5); /* 背景顏色與圖片混合，並設定透明度 */
+        }
+        .container {
+            width: 100%;
+            height: 100vh; /* 容器高度設為視窗高度 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* 垂直置中 */
+            align-items: center; /* 水平置中 */
+        }
+        .logo {
+            width: 200px; /* 調整標誌大小 */
+            height: auto;
+        }
+        .form-signin {
+            max-width: 400px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.8); /* 表單背景顏色和透明度 */
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            width: 100%; /* 使表單寬度適應容器 */
+        }
+        .form-signin .form-signin-heading, .form-signin .checkbox { margin-bottom: 10px; }
+        .form-signin .form-control {
+            position: relative;
+            height: auto;
+            box-sizing: border-box;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .form-signin .form-control:focus { z-index: 2; }
+        .form-signin input[type="text"], .form-signin input[type="email"], .form-signin input[type="password"], .form-signin input[type="date"] {
+            margin-bottom: 10px;
+            border-radius: 0;
+        }
+        .btn-custom-register {
+            background-color: #6c757d; /* 淺灰色 */
+            color: white; /* 文字顏色 */
+            border: none;
+            margin: 5px;
+            padding: 10px 20px;
+            width: 100%; /* 按鈕寬度適應容器 */
+            transition: background-color 0.3s ease;
+        }
+        .btn-custom-register:hover {
+            background-color: #5a6268; /* 滑鼠懸停時更深的灰色 */
+            color: white; /* 滑鼠懸停時文字顏色不變 */
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <form class="form-register" action="/register" method="post">
-            <h2 class="form-register-heading">Register</h2>
-            <input type="text" name="username" class="form-control" placeholder="Username" required autofocus>
-            <input type="password" name="password" class="form-control" placeholder="Password" required>
-            <input type="email" name="email" class="form-control" placeholder="Email address" required>
-            <input type="text" name="full_name" class="form-control" placeholder="Full Name" required>
-            <input type="number" name="age" class="form-control" placeholder="Age">
-            <input type="text" name="gender" class="form-control" placeholder="Gender">
-            <input type="text" name="address" class="form-control" placeholder="Address">
-            <button class="btn btn-lg btn-primary btn-block" type="submit">Register</button>
+        <img src="logo.png" alt="Healthy Life Logo" class="logo"> <!-- 標誌 -->
+        <form class="form-signin" action="/register" method="post">
+            <h2 class="form-signin-heading">請註冊</h2>
+            <input type="text" id="username" name="username" class="form-control" placeholder="用戶名稱" required autofocus>
+            <input type="email" id="email" name="email" class="form-control" placeholder="電子郵件" required>
+            <input type="password" id="password" name="password" class="form-control" placeholder="密碼" required>
+            <input type="date" id="birthdate" name="birthdate" class="form-control" placeholder="年月日" required>
+            <button class="btn btn-custom-register btn-block" type="submit">註冊</button>
+            <p class="mt-3 mb-3 text-muted">Already have an account? <a href="login.html">Login here</a></p>
         </form>
     </div>
 </body>
