@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>搜尋 - 健出人生</title>
+    <!-- 使用 Flask 的 url_for 函數來引用 CSS 文件 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <header>
+        <!-- 使用 Flask 的 url_for 函數来正確引用圖片 -->
+        <img src="{{ url_for('static', filename='images/blacklogo.png') }}" alt="Healthy Life Logo">
+    </header>
+    <nav>
+        <!-- 修改連接以使用 Flask 的 url_for 函数 -->
+        <a href="{{ url_for('homepage') }}">主頁</a>
+        <a href="{{ url_for('plans') }}">計畫</a>
+        <a href="{{ url_for('search') }}">搜尋</a>
+        <a href="{{ url_for('profile') }}">個人</a>
+    </nav>
+    <main>
+        <h1>找尋您需要的一切！</h1>
+        <input type="text" placeholder="搜尋...">
+        <button>搜尋</button>
+    </main>
+</body>
+</html>

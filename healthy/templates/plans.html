@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>計畫 - 健出人生</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"> <!-- 更正 CSS 連接 -->
+</head>
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='images/blacklogo.png') }}" alt="Healthy Life Logo"> <!-- 更正圖片連結 -->
+    </header>
+    <nav>
+        <a href="{{ url_for('homepage') }}">主頁</a> 
+        <a href="{{ url_for('plans') }}">計畫</a> 
+        <a href="{{ url_for('search') }}">搜尋</a> 
+        <a href="{{ url_for('profile') }}">個人</a> 
+    </nav>
+    <main>
+        <h1>選擇最適合您的健身計畫！</h1>
+        <p>這裡列出了多種計畫供您選擇。</p>
+    </main>
+</body>
+</html>

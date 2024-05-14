@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>個人 - 健出人生</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        /* 内联样式，用于示例，可以移到外部CSS文件中 */
+        .delete-button-container {
+            margin-top: 30px; /* 调整此值以改变按钮的位置 */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='images/blacklogo.png') }}" alt="Healthy Life Logo">
+    </header>
+    <nav>
+        <a href="{{ url_for('homepage') }}">主頁</a>
+        <a href="{{ url_for('plans') }}">計畫</a>
+        <a href="{{ url_for('search') }}">搜尋</a>
+        <a href="{{ url_for('profile') }}">個人</a>
+    </nav>
+    <main>
+        <h1>您的個人資料</h1>
+        <p>管理您的資料和健身進度。</p>
+
+        {% if session.logged_in %}
+            <h2>歡迎, {{ session.username }}!</h2>
+            <p>電子郵件: {{ session.email }}</p>
+            <p>生日: {{ session.birthday }}</p>
+
+            <!-- 刪除會員表單 -->
+            <div class="delete-button-container">
+                <form id="delete-form" action="{{ url_for('delete_member') }}" method="POST" onsubmit="return confirmDelete()">
+                    <button type="submit">刪除帳戶</button>
+                </form>
+            </div>
+        {% else %}
+            <p>請先<a href="{{ url_for('login') }}">登錄</a>以查看您的個人資料。</p>
+        {% endif %}
+    </main>
+    <footer>
+        <p>&copy; 2024 健出人生. 保留所有權利.</p>
+    </footer>
+    <script>
+        function confirmDelete() {
+            return confirm("您確定要刪除您的帳戶嗎？此操作無法撤銷。");
+        }
+    </script>
+</body>
+</html>

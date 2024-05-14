@@ -1,0 +1,43 @@
+/* styles.css */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    padding: 10px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+header img {
+    height: 60px; /* Logo大小調整 */
+    margin-left: 20px;
+    border-radius: 50%; /* 圓形Logo */
+}
+nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #333;
+    color: white;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+}
+nav a {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+}
+main {
+    padding: 80px 20px 70px; /* 留出足夠空間給Logo和導航欄 */
+    text-align: center;
+}
+
