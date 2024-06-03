@@ -1,23 +1,89 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>計畫 - 健出人生</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"> <!-- 更正 CSS 連接 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthy Life - Plan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- 引入 Chart.js -->
 </head>
 <body>
     <header>
-        <img src="{{ url_for('static', filename='images/blacklogo.png') }}" alt="Healthy Life Logo"> <!-- 更正圖片連結 -->
+        <div class="logo">
+            <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="Logo 1">
+            <img src="{{ url_for('static', filename='images/logo2.png') }}" alt="Logo 2">
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('homepage') }}" class="nav-link ">Home</a></li>
+                <li><a href="{{ url_for('plans') }}" class="nav-link active">Plan</a></li>
+                <li><a href="{{ url_for('search') }}" class="nav-link">Search</a></li>
+                <li><a href="{{ url_for('profile') }}" class="nav-link">Personal</a></li>
+            </ul>
+        </nav>
     </header>
-    <nav>
-        <a href="{{ url_for('homepage') }}">主頁</a> 
-        <a href="{{ url_for('plans') }}">計畫</a> 
-        <a href="{{ url_for('search') }}">搜尋</a> 
-        <a href="{{ url_for('profile') }}">個人</a> 
-    </nav>
     <main>
-        <h1>選擇最適合您的健身計畫！</h1>
-        <p>這裡列出了多種計畫供您選擇。</p>
+        <section class="schedule">
+            <h2>Your Fitness Plan</h2>
+            <button onclick="addNewExercise()">Add Exercise</button>
+            <div id="exerciseList">
+                <!-- 初始課程將透過 JavaScript 加載 -->
+            </div>
+        </section>
+        <section class="chart">
+            <h2>Your Progress</h2>
+            <canvas id="progressChart"></canvas> <!-- 使用 canvas 元素為圖表 -->
+        </section>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSchedule();
+            updateChart();
+        });
+
+        function addNewExercise() {
+            const exerciseList = document.getElementById('exerciseList');
+            const newExercise = document.createElement('div');
+            newExercise.innerHTML = `
+                <input type="text" placeholder="Exercise Name">
+                <input type="number" placeholder="Reps">
+                <input type="number" placeholder="Sets">
+                <button onclick="saveExercise(this)">Save</button>
+            `;
+            exerciseList.appendChild(newExercise);
+        }
+
+        function saveExercise(button) {
+            // 保存健身計畫的邏輯
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            const myChart = new Chart(ctx, {
+                type: 'line', // 線型圖
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Calories Burned',
+                        data: [1200, 1500, 1800, 2000],
+                        backgroundColor: ['rgba(255, 99, 132, 0.2)'],
+                        borderColor: ['rgba(255, 99, 132, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
