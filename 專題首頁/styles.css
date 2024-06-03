@@ -54,8 +54,63 @@ main {
     display: flex;
     justify-content: center;
     padding: 20px;
+    position: relative;
 }
 
+.left-panel {
+    width: 15%; /* 左側面板寬度 */
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    left: 20px;
+    top: 10px; /* 調整這裡來改變框框與頂部的距離 */
+}
+
+.transparent-box {
+    width: 80%;
+    height: 80%;
+    background-color: rgba(255, 255, 255, 0.1); /* 透明框架 */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* 添加陰影 */
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    background-color: transparent;
+    border: 2px solid white;
+    border-radius: 50px;
+    width: 60%; /* 調整這裡以設置搜索框寬度 */
+    padding: 10px 20px; /* 內邊距 */
+    margin-top: 50px; /* 調整這裡以設置搜索框與頂部的距離 */
+    margin-left: auto; /* 確保搜索框居中 */
+    margin-right: auto;
+}
+
+.search-input {
+    flex: 1;
+    background-color: transparent;
+    border: none;
+    color: white;
+    font-size: 18px;
+    outline: none;
+    padding-left: 10px;
+}
+
+.search-button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.search-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* 添加的之前的CSS */
 .post {
     background-color: transparent;
     padding: 20px;
