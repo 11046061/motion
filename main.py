@@ -1,6 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash,jsonify
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
+import os
+import openai
 
 app = Flask(__name__, static_folder='static')
 app.secret_key = 'your_secret_key'  # 保護密碼
@@ -14,6 +16,49 @@ def get_db_connection():
         database='healthy'
     )
     return connection
+
+# API調用
+def get_answer_from_chatgpt(question):
+    try:
+        openai_api_key = os.getenv('OPENAI_API_KEY')
+        response = openai.Completion.create(
+            engine="davinci",
+            prompt=question,
+            max_tokens=150,
+            api_key=openai_api_key
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+# 路由處理
+@app.route('/ask', methods=['POST'])
+def ask():
+    if 'logged_in' not in session or 'user_id' not in session:
+        return jsonify({'error': 'User not logged in or session is missing user_id'}), 403
+
+    user_question = request.json.get('question')  # 從JSON數據中獲取問題
+    member_id = session.get('user_id')  # 從session中獲取用戶ID
+
+    if member_id is None:
+        return jsonify({'error': 'Session does not contain a valid member ID'}), 400
+
+    # 從ChatGPT獲取答案
+    answer = get_answer_from_chatgpt(user_question)
+
+    # 存儲問題和答案到資料庫
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO questions (member_id, question, answer) VALUES (%s, %s, %s)",
+        ( member_id, user_question, answer)
+    )
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+    return jsonify({'question': user_question, 'answer': answer})
 
 @app.route('/')
 def home():
