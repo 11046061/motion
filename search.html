@@ -8,18 +8,75 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+        }
+
+        .search-container {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            color: black; /* 设置输入框文字颜色为黑色 */
+        }
+
+        .search-button {
+            background-color: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-button img {
+            margin-right: 8px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            width: 100%;
+            max-width: 600px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            color: black; /* 设置输出区域文字颜色为黑色 */
+        }
+    </style>
     <script>
-        // 页面加载后添加事件监听器
         window.onload = function() {
             document.querySelector('.search-button').addEventListener('click', function() {
                 var userInput = document.querySelector('.search-input').value;
-                if (userInput.trim() !== '') { // 确保输入不为空
-                    fetch('/ask', {
+                if (userInput.trim() !== '') {
+                    fetch('/search', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({question: userInput})
+                        body: JSON.stringify({ prompt: userInput })
                     })
                     .then(response => {
                         if (!response.ok) {
@@ -28,8 +85,12 @@
                         return response.json();
                     })
                     .then(data => {
-                        if (data.answer) {
-                            alert('Response: ' + data.answer); // 显示答案
+                        var resultsDiv = document.getElementById('results');
+                        resultsDiv.innerText = '';
+                        if (data.ai_answer) {
+                            resultsDiv.innerText = data.ai_answer;
+                        } else if (data.error) {
+                            resultsDiv.innerText = data.error;
                         } else {
                             throw new Error('No answer returned from the server');
                         }
@@ -66,8 +127,10 @@
             <input type="text" placeholder="Search..." class="search-input">
             <button class="search-button">
                 <img src="{{ url_for('static', filename='images/search.png') }}" alt="Search Icon" class="search-icon">
+                Search
             </button>
         </div>
+        <div id="results" class="results"></div>
     </main>
 </body>
 </html>
