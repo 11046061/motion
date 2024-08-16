@@ -18,62 +18,7 @@ def get_db_connection():
     )
     return connection
 
-"""@app.route('/', methods=['POST', 'GET'])
-def ask():
 
-  # 當是POST的時後，就去呼叫Open AI的API，然後把問題送出去
-  # 把答案拿回來在送給前端
-  if request.method == "POST":
-    prompt = request.form['prompt']
-    result = {}
-    result['ai_answer'] = openapi.get_open_ai_api_chat_response(prompt)
-    return jsonify(result)
-  return render_template('search.html', **locals())"""
-
-
-# API調用
-'''def get_answer_from_chatgpt(question):
-    try:
-        openai_api_key = os.getenv('OPENAI_API_KEY')
-
-        
-        response = openai.Completion.create(
-            engine="davinci",
-            prompt=question,
-            max_tokens=150
-        )
-        return response.choices[0].text.strip()
-    except Exception as e:
-        return f"Error: {str(e)}"#'''
-
-
-# 路由處理
-'''@app.route('/ask', methods=['POST'])
-def ask():
-    if 'logged_in' not in session or 'user_id' not in session:
-        return jsonify({'error': 'User not logged in or session is missing user_id'}), 403
-
-    user_question = request.json.get('question')  # 從JSON數據中獲取問題
-    member_id = session.get('user_id')  # 從session中獲取用戶ID
-
-    if member_id is None:
-        return jsonify({'error': 'Session does not contain a valid member ID'}), 400
-
-    # 從ChatGPT獲取答案
-    answer = get_answer_from_chatgpt(user_question)
-
-    # 存儲問題和答案到資料庫
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        "INSERT INTO questions (member_id, question, answer) VALUES (%s, %s, %s)",
-        ( member_id, user_question, answer)
-    )
-    connection.commit()
-    cursor.close()
-    connection.close()
-
-    return jsonify({'question': user_question, 'answer': answer})'''
 
 @app.route('/')
 def home():
@@ -123,13 +68,14 @@ def login():
         password = request.form['password']
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                cursor.execute('SELECT username, password, email, birthday FROM members WHERE email = %s', (email,))  # 透過電子郵件來查找密碼
+                cursor.execute('SELECT id, username, password, email, birthday FROM members WHERE email = %s', (email,))  # 透過電子郵件來查找密碼
                 account = cursor.fetchone()
-        if account and check_password_hash(account[1], password):
+        if account and check_password_hash(account[2], password):
             session['logged_in'] = True
-            session['username'] = account[0]
-            session['email'] = account[2]
-            session['birthday'] = account[3]
+            session['user_id'] = account[0]  # 儲存 user_id 到 session
+            session['username'] = account[1]
+            session['email'] = account[3]
+            session['birthday'] = account[4]
             return redirect(url_for('homepage'))  # 登錄成功，重定向到主頁
         else:
             flash('Invalid email or password')  # 更改錯誤消息，明確指出是電子郵件或密碼錯誤
@@ -150,6 +96,8 @@ def plans():
 #搜尋
 @app.route('/search', methods=['POST', 'GET'])
 def search():
+    member_id = session.get('user_id')
+    
     if request.method == 'POST':
         data = request.get_json()
         if not data or 'prompt' not in data:
@@ -157,13 +105,24 @@ def search():
 
         prompt = data['prompt']
         try:
-            result = {'ai_answer': openapi.get_open_ai_api_chat_response(prompt)}  # 使用 openapi 中的函数
-            return jsonify(result)
+            ai_answer = openapi.get_open_ai_api_chat_response(member_id, prompt)
+            return jsonify({'ai_answer': ai_answer})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-    return render_template('search.html')
-
+    # 如果是 GET 請求，載入歷史記錄
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = "SELECT question, answer, asked_at FROM questions WHERE member_id = %s ORDER BY asked_at DESC"
+                cursor.execute(query, (member_id,))
+                history_data = cursor.fetchall()
+                
+        return render_template('search.html', history=history_data)
+    except mysql.connector.Error as e:
+        flash(str(e), 'error')
+        return redirect(url_for('homepage'))
+#個人
 @app.route('/profile')
 def profile():
     if not session.get('logged_in'):
@@ -212,6 +171,8 @@ def logout():
     session.pop('birthday', None)
     flash('You have been logged out.')
     return redirect(url_for('login'))
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
