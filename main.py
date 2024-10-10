@@ -18,7 +18,7 @@ def get_db_connection():
         host='localhost',
         port='3306',
         user='root',
-        password='figs0630',
+        password='11046061',
         database='healthy'
     )
     return connection
@@ -27,6 +27,63 @@ def get_db_connection():
 UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+"""@app.route('/', methods=['POST', 'GET'])
+def ask():
+
+  # 當是POST的時後，就去呼叫Open AI的API，然後把問題送出去
+  # 把答案拿回來在送給前端
+  if request.method == "POST":
+    prompt = request.form['prompt']
+    result = {}
+    result['ai_answer'] = openapi.get_open_ai_api_chat_response(prompt)
+    return jsonify(result)
+  return render_template('search.html', **locals())"""
+
+
+# API調用
+'''def get_answer_from_chatgpt(question):
+    try:
+        openai_api_key = os.getenv('OPENAI_API_KEY')
+
+        
+        response = openai.Completion.create(
+            engine="davinci",
+            prompt=question,
+            max_tokens=150
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        return f"Error: {str(e)}"#'''
+
+
+# 路由處理
+'''@app.route('/ask', methods=['POST'])
+def ask():
+    if 'logged_in' not in session or 'user_id' not in session:
+        return jsonify({'error': 'User not logged in or session is missing user_id'}), 403
+
+    user_question = request.json.get('question')  # 從JSON數據中獲取問題
+    member_id = session.get('user_id')  # 從session中獲取用戶ID
+
+    if member_id is None:
+        return jsonify({'error': 'Session does not contain a valid member ID'}), 400
+
+    # 從ChatGPT獲取答案
+    answer = get_answer_from_chatgpt(user_question)
+
+    # 存儲問題和答案到資料庫
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO questions (member_id, question, answer) VALUES (%s, %s, %s)",
+        ( member_id, user_question, answer)
+    )
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+    return jsonify({'question': user_question, 'answer': answer})'''
 
 @app.route('/')
 def home():
@@ -186,6 +243,8 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+
 @app.route('/get_posts', methods=['GET'])
 def get_posts():
     connection = get_db_connection()
@@ -210,7 +269,6 @@ def get_posts():
             FROM comments
             JOIN members ON comments.members_id = members.id
             WHERE post_id = %s
-            ORDER BY comments.created_at ASC
         """, (post['id'],))
         comments = cursor.fetchall()
 
@@ -245,6 +303,12 @@ def get_posts():
     connection.close()
     return jsonify({'posts': posts})
 
+
+
+
+
+
+
 @app.route('/get_post_images/<int:post_id>')
 def get_post_images(post_id):
     connection = get_db_connection()
@@ -255,6 +319,7 @@ def get_post_images(post_id):
     cursor.close()
     connection.close()
     return jsonify({'images': image_urls})
+
 
 @app.route('/get_post_videos/<int:post_id>')
 def get_post_videos(post_id):
@@ -267,15 +332,14 @@ def get_post_videos(post_id):
     connection.close()
     return jsonify({'videos': video_urls})
 
+
 @app.route('/add_comment', methods=['POST'])
 def add_comment():
     data = request.json
     post_id = data.get('post_id')
     content = data.get('content').strip()
     member_id = session.get('id')
-    parent_comment_id = data.get('parent_comment_id')  # 新增這個欄位來接收父留言的ID
-    
-    # 檢查留言內容是否為空
+
     if not content:
         return jsonify({"status": "error", "message": "留言內容不能為空"})
 
@@ -285,19 +349,18 @@ def add_comment():
     # 檢查該用戶在該貼文下是否有重複的留言
     cursor.execute("""
         SELECT * FROM comments 
-        WHERE post_id = %s AND members_id = %s AND content = %s AND parent_comment_id = %s
-    """, (post_id, member_id, content, parent_comment_id))
+        WHERE post_id = %s AND members_id = %s AND content = %s
+    """, (post_id, member_id, content))
     existing_comment = cursor.fetchone()
 
-    # 如果找到相同的留言，返回錯誤
     if existing_comment:
         return jsonify({"status": "error", "message": "重複的留言"})
 
     # 插入新留言
     cursor.execute("""
-        INSERT INTO comments (post_id, members_id, content, parent_comment_id) 
-        VALUES (%s, %s, %s, %s)
-    """, (post_id, member_id, content, parent_comment_id))
+        INSERT INTO comments (post_id, members_id, content) 
+        VALUES (%s, %s, %s)
+    """, (post_id, member_id, content))
     connection.commit()
     comment_id = cursor.lastrowid
 
@@ -305,6 +368,14 @@ def add_comment():
     connection.close()
 
     return jsonify({"status": "success", "comment_id": comment_id, "username": session.get('username')})
+
+
+
+
+
+
+
+
 
 @app.route('/delete_comment/<int:comment_id>', methods=['DELETE'])
 def delete_comment(comment_id):
@@ -380,6 +451,8 @@ def like_post():
 
     return jsonify({"status": "success", "likes": likes_count})
 
+
+
 @app.route('/unlike_post', methods=['POST'])
 def unlike_post():
     post_id = request.json.get('post_id')
@@ -436,6 +509,8 @@ def like_comment():
     finally:
         cursor.close()
         connection.close()
+
+
 
 @app.route('/delete_post/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
@@ -517,7 +592,6 @@ def profile():
     }
 
     return render_template('profile.html', **user_info)
-
 #刪除會員資料
 @app.route('/delete_member', methods=['POST'])
 def delete_member():
@@ -543,6 +617,145 @@ def delete_member():
     else:
         flash('Unable to find your account information.', 'error')
         return redirect(url_for('profile'))
+    
+@app.route('/get-plan-status', methods=['GET'])
+def get_plan_status():
+    user_id = session.get('id')  # 從 session 中獲取使用者 ID
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    today_date = datetime.date.today()
+
+    # 查詢 plans 表，檢查計畫是否已完成
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT completed FROM plans WHERE user_id = %s AND date = %s', (user_id, today_date))
+    plan_status = cursor.fetchone()
+    cursor.close()
+
+    if plan_status and plan_status['completed']:
+        return jsonify({'completed': True})
+    else:
+        return jsonify({'completed': False})
+
+
+
+
+@app.route('/complete-plan', methods=['POST'])
+def complete_plan():
+    user_id = session.get('id')  # 從 session 中獲取使用者 ID
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    today_date = datetime.date.today()
+
+    # 更新 plans 表，將計畫標記為已完成
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute('INSERT INTO plans (user_id, date, completed) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE completed = %s',
+                   (user_id, today_date, True, True))
+    connection.commit()
+    cursor.close()
+
+    return jsonify({'status': 'success'})
+
+
+@app.route('/update-profile', methods=['POST'])
+def update_profile():
+    try:
+        user_id = session.get('id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        data = request.get_json()
+        height = data.get('height')
+        weight_today = data.get('weight_today')
+
+        if height is not None and not isinstance(height, (int, float)):
+            return jsonify({'error': 'Invalid height data provided'}), 400
+        if weight_today is None or not isinstance(weight_today, (int, float)):
+            return jsonify({'error': 'Invalid weight data provided'}), 400
+
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # 檢查使用者是否已經有身高數據
+        cursor.execute('SELECT height FROM user_fitness_data WHERE user_id = %s LIMIT 1', (user_id,))
+        result = cursor.fetchone()
+
+        if result is None:
+            # 如果沒有身高數據，則儲存新數據
+            cursor.execute('INSERT INTO user_fitness_data (user_id, height, weight_today, date) VALUES (%s, %s, %s, CURDATE())',
+                          (user_id, height, weight_today))
+        else:
+            # 如果已經有身高數據，則只更新當天的體重
+            cursor.execute('UPDATE user_fitness_data SET weight_today = %s WHERE user_id = %s AND date = CURDATE()', 
+                          (weight_today, user_id))
+
+        connection.commit()
+        cursor.close()
+
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        print(f"更新用戶資料時發生錯誤: {str(e)}")
+        return jsonify({'error': 'Failed to update profile data'}), 500
+
+
+
+
+
+
+@app.route('/get-profile-data', methods=['GET'])
+def get_profile_data():
+    try:
+        user_id = session.get('id')  # 從 session 中取得登入的用戶ID
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        # 從 user_fitness_data 表中查詢用戶最近的一筆資料
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute('SELECT height, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date DESC LIMIT 1', 
+                       (user_id,))
+        profile_data = cursor.fetchone()
+        cursor.close()
+
+        if profile_data:
+            return jsonify(profile_data)  # 回傳最近的身高與體重
+        else:
+            return jsonify({'error': 'No data found'}), 404  # 如果無資料，返回404錯誤
+
+    except Exception as e:
+        print(f"獲取用戶資料時發生錯誤: {str(e)}")
+        return jsonify({'error': 'Failed to get profile data'}), 500
+
+
+@app.route('/get-weight-history')
+def get_weight_history():
+    user_id = session.get('id')  # 從 session 取得用戶 ID
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 403
+
+    # 建立資料庫連線
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    # 查詢用戶的體重歷史資料
+    query = "SELECT date, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date"
+    cursor.execute(query, (user_id,))
+    results = cursor.fetchall()
+
+    # 關閉 cursor 和連線
+    cursor.close()
+    connection.close()
+
+    # 將日期格式化並收集體重數據
+    dates = [row[0].strftime('%Y-%m-%d') for row in results]
+    weights = [row[1] for row in results]
+
+    return jsonify({'dates': dates, 'weights': weights})
+
+
 
 @app.route('/logout')
 def logout():
