@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthy Life - Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            margin: 20px 0; /* 確保上下留有足夠的空間 */
+            clear: both; /* 確保標題不受其他浮動元素影響 */
+        }
+
+        main {
+            margin-top: 60px; /* 確保內容不會與標題重疊 */
+        }
+
+
+
+        .comment-section {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .comment {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: left;
+            position: relative;
+            font-size: 14px;
+            color: #333;
+        }
+        .comment-input-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        #commentInput {
+            width: 100%;
+            max-width: 500px;
+            height: 45px; /* 與按鈕高度一致 */
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-sizing: border-box; /* 确保内边距和边框包含在内 */
+        }
+        .comment-button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            height: 45px; /* 與留言框高度一致 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px; /* 調整字體大小 */
+            line-height: 1; /* 确保行高合适 */
+        }
+        .comment-button:hover {
+            background: #0056b3;
+        }
+        .comment button {
+            position: absolute;
+            top: 19px;
+            right: 10px;
+            background: #ff4d4d;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .comment button:hover {
+            background: #ff1a1a;
+        }
+        .post {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+        .post-header {
+            display: flex;
+            align-items: center;
+        }
+        .avatar {
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            margin-right: 10px;
+        }
+        .username {
+            font-weight: bold;
+        }
+        .post-time {
+            margin-left: auto;
+            color: #999;
+        }
+        .post-content {
+            margin-top: 10px;
+        }
+        .post-image{
+            max-width: 500px; /* 設置圖片和影片的最大寬度 */
+            max-height: 300px; /* 設置圖片和影片的最大高度 */
+            object-fit: cover; /* 確保圖片按比例縮放並覆蓋整個區域 */
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        .post-video {
+    width: 100%; /* 确保影片占据整个容器宽度 */
+    max-width: 100%; /* 防止跑出容器 */
+    height: auto; /* 根据宽度自动调整高度 */
+    max-height: 300px; /* 确保影片高度不超过限制 */
+    object-fit: cover;
+    margin-top: 10px;
+    border-radius: 5px;
+}
+
+
+        .post-actions {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .like-count, .comment-count {
+            margin-right: 10px;
+        }
+
+        .create-post {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #007bff;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 36px;
+            line-height: 60px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 1000; /* 增加z-index以顯示在廣告區域之上 */
+        }
+      
+
+        /*新增貼文中的視窗外背景*/
+        .create-post-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        /*新增貼文中的視窗*/
+        .create-post-modal-content {
+            background-color: rgba(0, 0, 0, 0.5); /* 背景設為黑色 */
+            font-size: 16px;
+            font-family: 'Arial', sans-serif;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 150px;
+            resize: vertical;
+            color: #fff; /* 字體顏色改為白色 */
+        }
+
+        .create-post-modal textarea, .create-post-modal input {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .create-post-modal button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            font-family: 'Arial', sans-serif; /* 修改字體 */
+}
+        .create-post-modal button:hover {
+            background: #0056b3;
+        }
+
+        .upload-label {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.upload-label:hover {
+    background-color: #0056b3;
+}
+
+.preview-container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-top: 10px;
+}
+
+.preview-container img,
+.preview-container video {
+    max-height: 100px;
+    margin-right: 10px;
+    border-radius: 5px;
+}
+
+.preview-container .arrow {
+    font-size: 24px;
+    color: #fff;
+    cursor: pointer;
+    align-self: center;
+    margin: 0 10px;
+}
+
+.media-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.media-container img {
+    max-width: 100%;
+    cursor: pointer;
+    margin-right: 10px;
+    border-radius: 5px;
+}
+/*
+.image-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.image-modal.active {
+    display: flex;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.modal-image {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 5px;
+}
+
+.modal-controls {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    transform: translateY(-50%);
+}
+
+.modal-controls button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 20px;
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+*/
+/* 模態的整體樣式 */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    padding-top: 60px; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto;
+    background-color: rgba(0,0,0,0.9); /* 背景顏色加深，帶有透明效果 */
+}
+
+/* 模態中的圖片和影片樣式 */
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 80%;
+}
+
+/* 關閉按鈕樣式 */
+.close {
+    position: absolute;
+    top: 30px;
+    right: 35px;
+    color: #fff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* 上一張和下一張按鈕樣式 */
+.prev, .next {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    width: auto;
+    padding: 16px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 60px;
+    transition: 0.3s;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.prev {
+    left: 10%;
+}
+
+.next {
+    right: 10%;
+}
+
+/* 在hover時改變按鈕的顏色 */
+.prev:hover, .next:hover, .close:hover {
+    color: #bbb;
+}
+
+
+        
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="Logo 1">
+            <img src="{{ url_for('static', filename='images/logo2.png') }}" alt="Logo 2">
+        </div>
+        <h1>健身社交平台</h1>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('homepage') }}" class="nav-link active">Home</a></li>
+                <li><a href="{{ url_for('plans') }}" class="nav-link">Plan</a></li>
+                <li><a href="{{ url_for('search') }}" class="nav-link">Search</a></li>
+                <li><a href="{{ url_for('profile') }}" class="nav-link">Personal</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+        <div id="posts-container">
+            <!-- 這裡會顯示貼文 -->
+        </div>
+    </main>
+    
+    
+    <div class="create-post" onclick="showCreatePostModal()">+</div>
+<!--新增貼文模組中的視窗 -->
+<div class="create-post-modal" id="createPostModal">
+    <div class="create-post-modal-content">
+        <textarea id="post-text" placeholder="分享你的健身心得..."></textarea>
+        
+        <label for="post-image" class="upload-label">上傳圖片</label>
+        <input type="file" id="post-image" name="image" multiple style="display: none;">
+
+        <label for="post-video" class="upload-label">上傳影片</label>
+        <input type="file" id="post-video" name="video" multiple style="display: none;">
+
+
+        <div id="preview-container" class="preview-container"></div>
+
+        <button onclick="createPost()">發佈</button>
+    </div>
+</div>
+
+
+    
+    <div class="sidebar left">
+        <a href="#privacy-policy">隱私政策</a>
+        <a href="#terms-of-service">使用者政策</a>
+        <!-- 廣告區塊 -->
+    </div>
+    
+    <div class="sidebar right">
+        <!-- 廣告區塊 -->
+    </div>
+    
+    
+    <script>
+        
+
+        
+        function createPost() {
+            const text = document.getElementById('post-text').value;
+            const imageFiles = Array.from(document.getElementById('post-image').files);  // 使用Array.from將FileList轉換為數組
+            const videoFiles = Array.from(document.getElementById('post-video').files);  // 同樣處理影片
+
+            const formData = new FormData();
+            formData.append('content', text);
+
+            imageFiles.forEach(file => formData.append('images', file));  // 添加圖片
+            videoFiles.forEach(file => formData.append('videos', file));  // 添加影片
+
+            fetch('/add_post', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    hideCreatePostModal();
+                    location.reload();  // 發佈成功後重新加載頁面
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+        }
+
+
+
+
+
+        
+        
+        
+
+        function createPostHTML(post) {
+        let content = '';
+        const images = post.images || [];
+        const videos = post.videos || [];
+        const maxImages = 3;
+
+        images.slice(0, maxImages).forEach((image, index) => {
+            content += `<div class="image-wrapper" style="flex: 1;">
+                            <img src="${image}" class="post-image" data-post-id="${post.id}" data-index="${index}" onclick="openImageModal(${post.id}, ${index})">
+                        </div>`;
+        });
+
+        // 顯示多張圖片時的 "+更多" 圖示
+        if (images.length > maxImages) {
+            const remaining = images.length - maxImages;
+            content += `<div class="image-wrapper" style="flex: 1; position: relative;">
+                            <img src="${images[maxImages]}" class="post-image" onclick="openImageModal(${post.id}, ${maxImages - 1})">
+                            <div class="overlay">+${remaining}</div>
+                        </div>`;
+        }
+
+        // 顯示影片
+        const maxVideos = 3;
+        videos.slice(0, maxVideos).forEach((video, index) => {
+            content += `<div class="video-wrapper" style="flex: 1;">
+                            <video src="${video}" class="post-video" controls onclick="openVideoModal(${post.id}, ${index})"></video>
+                        </div>`;
+        });
+
+        if (videos.length > maxVideos) {
+            const remaining = videos.length - maxVideos;
+            content += `<div class="video-wrapper" style="flex: 1; position: relative;">
+                            <video src="${videos[maxVideos]}" class="post-video" controls onclick="openVideoModal(${post.id}, ${maxVideos - 1})"></video>
+                            <div class="overlay">+${remaining}</div>
+                        </div>`;
+        }
+
+        let commentsHTML = '';
+        if (post.comments && post.comments.length > 0) {
+            post.comments.forEach(comment => {
+                commentsHTML += `
+                    <div class="comment" id="comment-${comment.id}">
+                        <p><strong>${comment.username}:</strong> ${comment.content}</p>
+                        <span class="comment-time">${formatTime(new Date(comment.created_at))}</span>
+                        <div class="comment-actions">
+                            <img src="${comment.user_liked ? "{{ url_for('static', filename='images/like1.png') }}" : "{{ url_for('static', filename='images/like.png') }}" }" alt="Like" class="action-icon like-icon" onclick="likeComment(${comment.id})">
+                            <span class="comment-like-count">按讚: ${comment.likes}</span>
+                            <img src="{{ url_for('static', filename='images/mess.png') }}" alt="Reply" class="action-icon reply-icon" onclick="showReplyBox(${comment.id})">
+                            ${comment.deletable ? `<button onclick="deleteComment(${comment.id})">刪除</button>` : ''}
+                        </div>
+                        <div class="reply-section" id="replySection_${comment.id}" style="display:none;">
+                            <textarea id="replyInput_${comment.id}" placeholder="輸入回覆..."></textarea>
+                            <button class="reply-button" onclick="addReply(${comment.id})">傳送</button>
+                        </div>
+                        <div class="replies-container" id="repliesContainer_${comment.id}">
+                            <!-- 回覆將顯示在這裡 -->
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 判斷是否按讚，顯示不同的按讚圖示
+        
+
+        let likeIcon = post.user_liked ? "{{ url_for('static', filename='images/like1.png') }}" : "{{ url_for('static', filename='images/like.png') }}";
+
+
+
+        return `
+            <div class="post" id="post-${post.id}">
+                <div class="post-header">
+                    <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="Avatar" class="avatar">
+                    <div class="username">${post.username}</div>
+                    <div class="post-time">${formatTime(new Date(post.created_at))}</div>
+                    <button onclick="deletePost(${post.id})">刪除</button>
+                </div>
+                <div class="post-content">
+                    <p>${post.content}</p>
+                    <div class="media-container" style="display: flex;">
+                        ${content}
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <img src="${likeIcon}" alt="Like" class="action-icon like-icon" onclick="toggleLike(${post.id})">
+                    <div class="like-count">按讚: ${post.likes}</div>
+                    <img src="{{ url_for('static', filename='images/mess.png') }}" alt="Comment" class="action-icon comment-icon" onclick="showCommentSection(${post.id})">
+                    <div class="comment-count">留言: ${post.comments.length}</div>
+                </div>
+                <div class="comment-section" id="commentSection_${post.id}">
+                    ${commentsHTML}
+                    <div class="comment-input-container">
+                        <textarea id="commentInput_${post.id}" placeholder="輸入留言..."></textarea>
+                        <button class="comment-button" onclick="addComment(${post.id})">傳送</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        }
+
+
+        function openImageModal(postId, index) {
+            // 找到所有帖子，然後找到對應的帖子
+            const post = posts.find(p => p.id === postId);
+            if (!post) {
+                console.error("Post not found");
+                return;
+            }
+
+            const images = post.images;
+            let currentIndex = index;
+
+            // 創建模態視窗
+            const modal = document.createElement('div');
+            modal.className = 'image-modal active';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <button class="modal-close" onclick="closeImageModal()">×</button>
+                    <img src="${images[currentIndex] -1}" class="modal-image" id="modal-image">
+                    <div class="modal-controls">
+                        <button onclick="prevImage()">‹</button>
+                        <button onclick="nextImage()">›</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // 控制模態視窗的顯示與關閉
+            window.closeImageModal = function() {
+                const modal = document.querySelector('.image-modal');
+                if (modal) {
+                    modal.remove();
+                }
+            };
+
+            window.nextImage = function() {
+                currentIndex = (currentIndex + 1) % images.length;
+                document.getElementById('modal-image').src = images[currentIndex];
+            };
+
+            window.prevImage = function() {
+                currentIndex = (currentIndex - 1 + images.length) % images.length;
+                document.getElementById('modal-image').src = images[currentIndex];
+            };
+        }
+
+        function openVideoModal(postId, index) {
+            const post = posts.find(p => p.id === postId);
+            if (!post) return;
+                    const videos = post.videos;
+                    let currentIndex = index;
+
+                    const modal = document.createElement('div');
+            modal.className = 'video-modal active';
+            modal.innerHTML = `
+                <!-- 影片模態 -->
+        <div id="videoModal" class="modal">
+            <span class="close" id="videoModalClose">&times;</span>
+            <video class="modal-content" id="modalVideo" controls></video>
+            <a class="prev" id="prevVideo">&#10094;</a>
+            <a class="next" id="nextVideo">&#10095;</a>
+        </div>
+
+            `;
+
+            document.body.appendChild(modal);
+
+            window.closeVideoModal = function() {
+                modal.remove();
+            };
+
+            window.nextVideo = function() {
+                currentIndex = (currentIndex + 1) % videos.length;
+                document.getElementById('modal-video').src = videos[currentIndex];
+            };
+
+            window.prevVideo = function() {
+                currentIndex = (currentIndex - 1 + videos.length) % videos.length;
+                document.getElementById('modal-video').src = videos[currentIndex];
+            };
+        }
+
+
+        
+
+
+            
+        
+        function previewPost() {
+            const previewContainer = document.getElementById('preview-container');
+            previewContainer.innerHTML = ''; // 清空現有的預覽內容
+            const files = Array.from(this.files);
+
+            files.forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const mediaPreview = document.createElement(file.type.startsWith('image') ? 'img' : 'video');
+                    mediaPreview.src = e.target.result;
+                    mediaPreview.className = 'post-media-preview';
+                    if (file.type.startsWith('video')) {
+                        mediaPreview.controls = true;
+                    }
+                    previewContainer.appendChild(mediaPreview);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            if (files.length > 3) {
+                addArrows(previewContainer);
+            }
+        }
+
+        function addArrows(container) {
+            const leftArrow = document.createElement('div');
+            leftArrow.className = 'arrow';
+            leftArrow.innerHTML = '&#9664;';
+            leftArrow.addEventListener('click', () => container.scrollBy({ left: -100, behavior: 'smooth' }));
+            container.insertBefore(leftArrow, container.firstChild);
+
+            const rightArrow = document.createElement('div');
+            rightArrow.className = 'arrow';
+            rightArrow.innerHTML = '&#9654;';
+            rightArrow.addEventListener('click', () => container.scrollBy({ left: 100, behavior: 'smooth' }));
+            container.appendChild(rightArrow);
+        }
+
+
+            document.getElementById('post-image').addEventListener('change', previewPost);
+            document.getElementById('post-video').addEventListener('change', previewPost);
+
+
+    
+
+        document.querySelectorAll('.post-image').forEach(img => {
+            img.addEventListener('click', function() {
+                const modal = document.createElement('div');
+                modal.className = 'image-modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <img src="${this.src}" class="modal-image">
+                        <div class="modal-controls">
+                            <button onclick="zoomIn()">放大</button>
+                            <button onclick="zoomOut()">縮小</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                modal.querySelector('.close').onclick = function() {
+                    modal.remove();
+                }
+            });
+        });
+
+
+
+
+        function createCommentHTML(comment) {
+        let likeIcon = comment.user_liked ? "{{ url_for('static', filename='images/like1.png') }}" : "{{ url_for('static', filename='images/like.png') }}";
+
+        return `
+            <div class="comment" id="comment-${comment.id}">
+                <p><strong>${comment.username}:</strong> ${comment.content}</p>
+                <span class="comment-time">${formatTime(new Date(comment.created_at))}</span>
+                <div class="comment-actions">
+                    <img src="${likeIcon}" alt="Like" class="action-icon like-icon" onclick="likeComment(${comment.id})">
+                    <span class="comment-like-count">按讚: ${comment.likes}</span>
+                    <img src="{{ url_for('static', filename='images/mess.png') }}" alt="Reply" class="action-icon reply-icon" onclick="showReplyBox(${comment.id})">
+                    ${comment.deletable ? `<button onclick="deleteComment(${comment.id})">刪除</button>` : ''}
+                </div>
+                <div class="reply-section" id="replySection_${comment.id}" style="display: none;">
+                    <textarea id="replyInput_${comment.id}" placeholder="輸入回覆..."></textarea>
+                    <button class="reply-button" onclick="addReply(${comment.id})">傳送</button>
+                </div>
+                <div class="replies-container" id="repliesContainer_${comment.id}">
+                    <!-- 回覆將顯示在這裡 -->
+                </div>
+            </div>
+        `;
+    }
+
+
+
+
+
+
+        
+
+        function replyToComment(commentId, username) {
+            const replySection = document.getElementById(`replySection_${commentId}`);
+            replySection.style.display = 'block';
+            const replyInput = document.getElementById(`replyInput_${commentId}`);
+            replyInput.value = `@${username} `;
+            replyInput.focus();
+        }
+        function showReplyBox(commentId) {
+            const replySection = document.getElementById(`replySection_${commentId}`);
+            replySection.style.display = replySection.style.display === 'block' ? 'none' : 'block';
+        }
+        function addReply(commentId) {
+            const replyInput = document.getElementById(`replyInput_${commentId}`);
+            const replyText = replyInput.value.trim();
+            const postId = document.querySelector(`#comment-${commentId}`).closest('.post').id.split('-')[1]; // 获取 post_id
+            
+            if (replyText) {
+                fetch('/add_comment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ post_id: postId, content: replyText, parent_comment_id: commentId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 插入新的回覆，避免重新渲染整個留言區
+                        const repliesContainer = document.getElementById(`repliesContainer_${commentId}`);
+                        if (repliesContainer) {
+                            repliesContainer.innerHTML += `
+                                <div class="comment" id="comment-${data.comment_id}">
+                                    <p><strong>${data.username}:</strong> ${replyText}</p>
+                                    <span class="comment-time">${formatTime(new Date())}</span>
+                                    <img src="{{ url_for('static', filename='images/like.png') }}" alt="Like" class="action-icon like-icon" onclick="likeComment(${data.comment_id})">
+                                    <span class="comment-like-count">按讚: 0</span>
+                                    ${data.deletable ? `<button onclick="deleteComment(${data.comment_id})">刪除</button>` : ''}
+                                </div>
+                            `;
+                            replyInput.value = '';  // 清空輸入框
+                            document.getElementById(`replySection_${commentId}`).style.display = 'none';  // 隱藏回覆區
+                        }
+                        // 更新總留言數
+                        updateCommentCount(postId);
+                    } else {
+                        alert('回覆提交失敗：' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('發生錯誤，請稍後重試。');
+                });
+            } else {
+                alert('請輸入回覆內容');
+            }
+        }
+
+
+
+
+        function updateCommentCount(postId) {
+            const commentCountElement = document.querySelector(`#post-${postId} .comment-count`);
+            fetch(`/get_comment_count/${postId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // 將總數顯示出來，包括回覆
+                    commentCountElement.innerHTML = `留言: ${data.count}`;
+                });
+        }
+
+
+        function showCommentSection(postId) {
+            const commentSection = document.getElementById(`commentSection_${postId}`);
+            commentSection.style.display = commentSection.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function addComment(postId) {
+            const commentInput = document.getElementById(`commentInput_${postId}`);
+            const commentText = commentInput.value.trim();
+
+            if (commentText) {
+                const sendButton = document.querySelector('.comment-button');
+                sendButton.disabled = true;  // 禁用按鈕，防止多次提交
+
+                fetch('/add_comment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ post_id: postId, content: commentText })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        sendButton.disabled = false;  // 成功後重新啟用按鈕
+                        
+                        // 清空留言區，避免重複顯示
+                        const commentSection = document.getElementById(`commentSection_${postId}`);
+                        commentSection.innerHTML = '';  // 先清空現有留言
+                        
+                        // 渲染新留言和其他留言
+                            fetchCommentsAndRender(postId);  // 使用新的函數來重新渲染所有留言
+
+                            updateCommentCount(postId);  // 更新留言數
+                            commentInput.value = '';  // 清空輸入框
+                        } else {
+                            alert('提交失敗');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    sendButton.disabled = false;  // 發生錯誤時重新啟用按鈕
+                });
+            } else {
+                alert('請輸入留言內容');
+            }
+        }
+
+
+
+        function fetchCommentsAndRender(postId) {
+            fetch(`/get_comments?post_id=${postId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const commentSection = document.getElementById(`commentSection_${postId}`);
+                    commentSection.innerHTML = '';  // 清空留言區
+                    data.comments.forEach(comment => {
+                        const commentHTML = createCommentHTML(comment);
+                        commentSection.innerHTML += commentHTML;
+                    });
+                })
+                .catch(error => console.error('Error fetching comments:', error));
+        }
+
+
+
+        function formatTime(time) {
+            const now = new Date();
+            const diff = (now - time) / 1000;
+            if (diff < 60) return '剛剛';
+            if (diff < 3600) return `${Math.floor(diff / 60)}分鐘前`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}小時前`;
+            return `${Math.floor(diff / 86400)}天前`;
+        }
+
+        function toggleLike(postId) {
+            const likeIcon = document.querySelector(`#post-${postId} .like-icon`);
+            const isLiked = likeIcon.src.includes("{{ url_for('static', filename='images/like1.png') }}");
+            fetch('/like_post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ post_id: postId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    likeIcon.src = isLiked ? "{{ url_for('static', filename='images/like.png') }}" : "{{ url_for('static', filename='images/like1.png') }}";
+                    likeIcon.nextElementSibling.innerHTML = `按讚: ${data.likes}`;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+ 
+        
+
+        const likeIconUrl = "{{ url_for('static', filename='images/like.png') }}";
+        const like1IconUrl = "{{ url_for('static', filename='images/like1.png') }}";
+
+        function likeComment(commentId) {
+            fetch('/like_comment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ comment_id: commentId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const comment = document.querySelector(`#comment-${commentId}`);
+                    if (comment) {
+                        const likeCount = comment.querySelector('.comment-like-count');
+                        likeCount.innerHTML = `按讚: ${data.likes}`;  // 更新按讚數
+
+                        const likeIcon = comment.querySelector('.like-icon');
+                        if (data.user_liked) {
+                            likeIcon.src = like1IconUrl;  // 更新為紅色實心圖示
+                        } else {
+                            likeIcon.src = likeIconUrl;  // 更新為空心圖示
+                        }
+                    }
+                } else {
+                    alert('按讚失敗: ' + data.message);
+                }
+            })
+            .catch(error => console.error('按讚錯誤:', error));
+        }
+
+   
+
+        function deleteComment(commentId) {
+            fetch(`/delete_comment/${commentId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById(`comment-${commentId}`).remove();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+
+        function deletePost(postId) {
+            fetch(`/delete_post/${postId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById(`post-${postId}`).remove();
+                }
+            });
+        }
+
+        function unlikePost(postId) {
+            fetch('/unlike_post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ post_id: postId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                }
+            });
+        }
+
+        function showCreatePostModal() {
+            document.getElementById('createPostModal').style.display = 'flex';
+        }
+
+        function hideCreatePostModal() {
+            document.getElementById('createPostModal').style.display = 'none';
+        }
+
+        
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('createPostModal')) {
+                hideCreatePostModal();
+            }
+        }
+        
+
+        document.addEventListener('DOMContentLoaded', function() {
+            let currentPostImages = [];
+            let currentImageIndex = 0;
+            let currentPostVideos = [];
+            let currentVideoIndex = 0;
+
+            fetch('/get_posts')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);  // 檢查後端返回的資料結構
+                    const postsContainer = document.getElementById('posts-container');
+                    postsContainer.innerHTML = ''; // 清空容器
+
+                    data.posts.forEach(post => {
+                        const postHTML = createPostHTML(post);  // 生成貼文HTML
+                        postsContainer.innerHTML += postHTML;
+
+                        // 渲染留言
+                        renderComments(post);
+                    });
+                })
+                .catch(error => {
+                    console.error('載入貼文時出錯:', error);
+                });
+
+            // 渲染留言與回覆
+            function renderComments(post) {
+                const commentSection = document.getElementById(`commentSection_${post.id}`);
+                
+                // 清空現有留言
+                commentSection.innerHTML = '';
+
+                // 渲染父級留言
+                post.comments.forEach(comment => {
+                    if (!comment.parent_comment_id) {
+                        const commentHTML = createCommentHTML(comment);
+                        commentSection.innerHTML += commentHTML;
+                    }
+                });
+                
+                // 重新附加留言輸入框
+                const commentInputBoxHTML = `
+                    <div class="comment-input-container">
+                        <textarea id="commentInput_${post.id}" placeholder="輸入留言..."></textarea>
+                        <button class="comment-button" onclick="addComment(${post.id})">傳送</button>
+                    </div>
+                `;
+                commentSection.innerHTML += commentInputBoxHTML;
+
+                // 渲染回覆，將回覆嵌套到對應的父留言中
+                post.comments.forEach(comment => {
+                    if (comment.parent_comment_id) {
+                        const repliesContainer = ensureRepliesContainer(comment.parent_comment_id);
+                        
+                        // 避免重複渲染回覆
+                        if (!document.getElementById(`comment-${comment.id}`)) {
+                            const replyHTML = createCommentHTML(comment);
+                            repliesContainer.innerHTML += replyHTML;
+                        }
+                    }
+                });
+            }
+
+            function ensureRepliesContainer(parentCommentId) {
+                let repliesContainer = document.getElementById(`repliesContainer_${parentCommentId}`);
+                if (!repliesContainer) {
+                    const parentComment = document.getElementById(`comment-${parentCommentId}`);
+                    if (parentComment) {
+                        repliesContainer = document.createElement('div');
+                        repliesContainer.id = `repliesContainer_${parentCommentId}`;
+                        repliesContainer.className = 'replies-container';
+                        parentComment.appendChild(repliesContainer);
+                    }
+                }
+                return repliesContainer;
+            }
+});
+
+            
+
+
+        // 為所有圖片和影片添加點擊事件
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('post-image')) {
+                event.preventDefault();
+                const postId = event.target.dataset.postId;
+                const index = parseInt(event.target.dataset.index);
+
+                fetch(`/get_post_images/${postId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        currentPostImages = data.images;
+                        currentImageIndex = index;
+                        openImageModal();
+                        showImage(currentImageIndex);
+                    });
+            }   
+                else if (event.target.classList.contains('post-video')) {
+                    event.preventDefault();
+                    const postId = event.target.dataset.postId;
+                    const index = parseInt(event.target.dataset.index);
+
+                fetch(`/get_post_videos/${postId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        currentPostVideos = data.videos;
+                        currentVideoIndex = index;
+                        openVideoModal();
+                        showVideo(currentVideoIndex);
+                    });
+            }
+            
+
+
+                let currentZoomLevel = 1;
+
+                function zoomIn() {
+                    currentZoomLevel += 0.1;
+                    document.getElementById('modalImage').style.transform = `scale(${currentZoomLevel})`;
+                }
+
+                function zoomOut() {
+                    if (currentZoomLevel > 0.1) {
+                        currentZoomLevel -= 0.1;
+                        document.getElementById('modalImage').style.transform = `scale(${currentZoomLevel})`;
+                    }
+                }
+
+        // 開啟圖片模態
+        function openImageModal(index) {
+                document.getElementById('imageModal').style.display = 'block';
+                showImage(index);
+            }
+        // 關閉圖片模態
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        // 顯示當前圖片
+        function showImage(index) {
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = currentPostImages[index];
+        }
+
+        // 綁定下一張圖片按鈕事件
+        document.getElementById('nextImage').addEventListener('click', function() {
+            currentImageIndex = (currentImageIndex + 1) % currentPostImages.length;
+            showImage(currentImageIndex);
+        });
+
+        // 綁定上一張圖片按鈕事件
+        document.getElementById('prevImage').addEventListener('click', function() {
+            currentImageIndex = (currentImageIndex - 1 + currentPostImages.length) % currentPostImages.length;
+            showImage(currentImageIndex);
+        });
+
+        // 關閉模態視窗按鈕
+        document.getElementById('modalClose').addEventListener('click', function() {
+            closeImageModal();
+        });
+
+        // 開啟影片模態
+        function openVideoModal(index) {
+                document.getElementById('videoModal').style.display = 'block';
+                showVideo(index);
+            }
+
+        // 關閉影片模態
+        function closeVideoModal() {
+            const modalVideo = document.getElementById('modalVideo');
+            modalVideo.pause(); // 暫停影片播放
+            document.getElementById('videoModal').style.display = 'none';
+        }
+
+        // 顯示當前影片
+        function showVideo(index) {
+            const modalVideo = document.getElementById('modalVideo');
+            modalVideo.src = currentPostVideos[index];
+            modalVideo.play();
+        }
+
+        // 綁定下一個影片按鈕事件
+        document.getElementById('nextVideo').addEventListener('click', function() {
+            currentVideoIndex = (currentVideoIndex + 1) % currentPostVideos.length;
+            showVideo(currentVideoIndex);
+        });
+
+        // 綁定上一個影片按鈕事件
+        document.getElementById('prevVideo').addEventListener('click', function() {
+            currentVideoIndex = (currentVideoIndex - 1 + currentPostVideos.length) % currentPostVideos.length;
+            showVideo(currentVideoIndex);
+        });
+
+        // 關閉模態視窗按鈕
+        document.getElementById('videoModalClose').addEventListener('click', function() {
+            closeVideoModal();
+        });
+
+        // 點擊模態外部關閉模態
+        window.addEventListener('click', function(event) {
+            if (event.target == document.getElementById('imageModal')) {
+                closeImageModal();
+            } else if (event.target == document.getElementById('videoModal')) {
+                closeVideoModal();
+                }
+            });
+        });
+
+    </script>
+<!-- 確保模態視窗在頁面載入時就存在 -->
+<div id="imageModal" class="modal">
+    <span class="close" id="modalClose">&times;</span>
+    <img class="modal-content" id="modalImage">
+    <div class="modal-caption" id="modalCaption"></div>
+    <a class="prev" id="prevImage">&#10094;</a>
+    <a class="next" id="nextImage">&#10095;</a>
+    <div class="modal-controls">
+        <button onclick="zoomIn()">放大</button>
+        <button onclick="zoomOut()">縮小</button>
+    </div>
+</div>
+
+<div id="videoModal" class="modal">
+    <span class="close" id="videoModalClose">&times;</span>
+    <video class="modal-content" id="modalVideo" controls></video>
+    <a class="prev" id="prevVideo">&#10094;</a>
+    <a class="next" id="nextVideo">&#10095;</a>
+</div>
+</body>
+</html>
