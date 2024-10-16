@@ -660,6 +660,29 @@ def complete_plan():
     return jsonify({'status': 'success'})
 
 
+@app.route('/get-profile-data', methods=['GET'])
+def get_profile_data():
+    try:
+        user_id = session.get('id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # 獲取身高（持久）和當天體重
+        cursor.execute('SELECT height, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date DESC LIMIT 1', (user_id,))
+        profile_data = cursor.fetchone()
+        cursor.close()
+
+        if profile_data:
+            return jsonify(profile_data)
+        else:
+            return jsonify({'error': 'No data found'}), 404
+    except Exception as e:
+        print(f"Error getting user profile data: {str(e)}")
+        return jsonify({'error': 'Failed to get profile data'}), 500
+
 @app.route('/update-profile', methods=['POST'])
 def update_profile():
     try:
@@ -671,90 +694,55 @@ def update_profile():
         height = data.get('height')
         weight_today = data.get('weight_today')
 
-        if height is not None and not isinstance(height, (int, float)):
-            return jsonify({'error': 'Invalid height data provided'}), 400
-        if weight_today is None or not isinstance(weight_today, (int, float)):
-            return jsonify({'error': 'Invalid weight data provided'}), 400
+        if not height or not weight_today:
+            return jsonify({'error': 'Invalid data provided'}), 400
 
         connection = get_db_connection()
         cursor = connection.cursor()
 
-        # 檢查使用者是否已經有身高數據
-        cursor.execute('SELECT height FROM user_fitness_data WHERE user_id = %s LIMIT 1', (user_id,))
+        # 插入或更新用戶的體重和身高
+        cursor.execute('SELECT id FROM user_fitness_data WHERE user_id = %s AND date = CURDATE()', (user_id,))
         result = cursor.fetchone()
 
-        if result is None:
-            # 如果沒有身高數據，則儲存新數據
-            cursor.execute('INSERT INTO user_fitness_data (user_id, height, weight_today, date) VALUES (%s, %s, %s, CURDATE())',
-                          (user_id, height, weight_today))
-        else:
-            # 如果已經有身高數據，則只更新當天的體重
+        if result:
+            # 更新當天體重
             cursor.execute('UPDATE user_fitness_data SET weight_today = %s WHERE user_id = %s AND date = CURDATE()', 
-                          (weight_today, user_id))
-
+                           (weight_today, user_id))
+        else:
+            # 插入新資料
+            cursor.execute('INSERT INTO user_fitness_data (user_id, height, weight_today, date) VALUES (%s, %s, %s, CURDATE())',
+                           (user_id, height, weight_today))
+        
         connection.commit()
         cursor.close()
 
         return jsonify({'status': 'success'})
     except Exception as e:
-        print(f"更新用戶資料時發生錯誤: {str(e)}")
+        print(f"Error updating profile data: {str(e)}")
         return jsonify({'error': 'Failed to update profile data'}), 500
 
-
-
-
-
-
-@app.route('/get-profile-data', methods=['GET'])
-def get_profile_data():
+@app.route('/get-weight-history', methods=['GET'])
+def get_weight_history():
     try:
-        user_id = session.get('id')  # 從 session 中取得登入的用戶ID
+        user_id = session.get('id')
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
 
-        # 從 user_fitness_data 表中查詢用戶最近的一筆資料
         connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute('SELECT height, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date DESC LIMIT 1', 
-                       (user_id,))
-        profile_data = cursor.fetchone()
+        cursor = connection.cursor()
+        
+        # 取得用戶所有的體重歷史紀錄
+        cursor.execute('SELECT date, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date ASC', (user_id,))
+        results = cursor.fetchall()
+        
+        dates = [row[0].strftime('%Y-%m-%d') for row in results]
+        weights = [row[1] for row in results]
+
         cursor.close()
-
-        if profile_data:
-            return jsonify(profile_data)  # 回傳最近的身高與體重
-        else:
-            return jsonify({'error': 'No data found'}), 404  # 如果無資料，返回404錯誤
-
+        return jsonify({'dates': dates, 'weights': weights})
     except Exception as e:
-        print(f"獲取用戶資料時發生錯誤: {str(e)}")
-        return jsonify({'error': 'Failed to get profile data'}), 500
-
-
-@app.route('/get-weight-history')
-def get_weight_history():
-    user_id = session.get('id')  # 從 session 取得用戶 ID
-    if not user_id:
-        return jsonify({'error': 'User not logged in'}), 403
-
-    # 建立資料庫連線
-    connection = get_db_connection()
-    cursor = connection.cursor()
-
-    # 查詢用戶的體重歷史資料
-    query = "SELECT date, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date"
-    cursor.execute(query, (user_id,))
-    results = cursor.fetchall()
-
-    # 關閉 cursor 和連線
-    cursor.close()
-    connection.close()
-
-    # 將日期格式化並收集體重數據
-    dates = [row[0].strftime('%Y-%m-%d') for row in results]
-    weights = [row[1] for row in results]
-
-    return jsonify({'dates': dates, 'weights': weights})
-
+        print(f"Error getting weight history: {str(e)}")
+        return jsonify({'error': 'Failed to get weight history'}), 500
 
 
 @app.route('/logout')

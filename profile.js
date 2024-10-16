@@ -89,8 +89,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-
-
     // 插入登入頁面的按鈕
     const loginButton = document.createElement('button');
     loginButton.textContent = '前往登入頁面';
