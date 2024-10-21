@@ -35,6 +35,9 @@ def get_open_ai_api_chat_response(member_id, prompt):
         # 处理返回的回答
         ai_answer = response.choices[0].message['content'].replace("\n", "<br>")
         
+        # 轉換回答為繁體中文
+        ai_answer = converter.convert(ai_answer)
+        
         # 儲存問題及回應至資料庫
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
@@ -51,6 +54,6 @@ def get_db_connection():
         host='localhost',
         port='3306',
         user='root',
-        password='11046067',
+        password='figs0630',
         database='healthy'
     )

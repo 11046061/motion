@@ -1,6 +1,9 @@
 CREATE DATABASE `healthy`;
 USE `healthy`;
 
+SHOW VARIABLES LIKE 'default_authentication_plugin';
+SET GLOBAL default_authentication_plugin='mysql_native_password';
+
 CREATE TABLE `members` (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
@@ -86,3 +89,40 @@ CREATE TABLE comment_likes (
     FOREIGN KEY (members_id) REFERENCES members(id) ON DELETE CASCADE
 );
 SELECT * FROM `comment_likes`;
+
+CREATE EVENT reset_daily_weights
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-10-11 00:00:00'
+DO
+UPDATE user_fitness_data SET weight_today = NULL WHERE weight_today IS NOT NULL;
+
+CREATE TABLE user_fitness_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL, -- 連接 members 表中的 user_id
+    height INT NOT NULL, -- 身高
+    weight_today INT NOT NULL, -- 當天體重
+    date DATE NOT NULL, -- 日期
+    FOREIGN KEY (user_id) REFERENCES members(id) -- 與 members 表的 user_id 關聯
+);
+
+ALTER TABLE `members`
+ADD COLUMN `height` DECIMAL(5,2),  -- 身高（以公分為單位，可以是小數點）
+ADD COLUMN `weight` DECIMAL(5,2);  -- 體重（以公斤為單位，可以是小數點）
+
+CREATE TABLE plans (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    date DATE NOT NULL,
+    completed BOOLEAN NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES members(id)
+);
+
+
+CREATE TABLE plans_completed (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    date DATE NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES members(id) ON DELETE CASCADE
+);
+
+DESCRIBE members;

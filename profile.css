@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap');
+
+body {
+    background-color: #2B2E2E;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #2B2E2E;
+    margin-bottom: 40px; /* 確保 header 下方有足夠空間 */
+}
+
+.logo img {
+    height: 50px;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+
+nav ul li {
+    margin-right: 20px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    font-family: 'Just Another Hand', cursive;
+    font-size: 24px;
+    position: relative;
+}
+
+nav ul li a:hover::after, 
+nav ul li a.active::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: white;
+    bottom: -2px;
+    left: 0;
+}
+
+main {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+    max-width: 800px; /* 設置內容最大寬度 */
+    margin: 0 auto; /* 居中對齊 */
+    padding: 20px;
+}
+
+h1, h3 {
+    text-align: center;
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%; /* 避免過度拉伸 */
+    margin-bottom: 20px;
+}
+
+.avatar {
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+}
+
+.follow-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.settings-button {
+    padding: 10px 20px;
+    background-color: #ff6666; /* 淺紅色 */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.settings-button:hover {
+    background-color: #ff4c4c; /* 深紅色 */
+}
+
+.profile-body {
+    width: 100%;
+}
+
+.fitness-data, .achievements {
+    margin-bottom: 50px;
+    text-align: center;
+}
+
+.achievements .badge {
+    display: inline-block;
+    background-color: #ffcc00;
+    padding: 10px;
+    border-radius: 15px;
+    margin: 15px;
+}
+
+.button-container {
+    display: flex;
+    flex-direction: column; /* 確保按鈕上下排列 */
+    justify-content: center; /* 水平置中 */
+    align-items: center; /* 垂直置中 */
+    margin-top: 20px; /* 控制與上方徽章的距離 */
+}
+
+.button-container button {
+    background-color: #ff6666; /* 淺紅色 */
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px; /* 按鈕之間留出一些距離 */
+}
+
+.button-container button:hover {
+    background-color: #cc3333; /* 深紅色 */
+}
+
+

@@ -1,0 +1,32 @@
+body {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-image: url("{{ url_for('static', filename='images/background.png') }}");
+    background-size: cover;
+    color: white;
+    text-align: center;
+}
+.logo {
+    width: 200px;
+    height: auto;
+    margin-bottom: 20px;
+}
+.btn {
+    color: white;
+    border: none;
+    margin: 5px;
+    padding: 10px 20px;
+    transition: background-color 0.3s ease;
+}
+.btn-custom-login {
+    background-color: #343a40;
+}
+.btn-custom-login:hover {
+    background-color: #23272b;
+}
+.btn-custom-register {
+    background-color: #6c757d;
+}
+.btn-custom-register:hover {
+    background-color: #5a6268;
+}

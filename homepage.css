@@ -1,0 +1,395 @@
+@import url('https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap');
+
+body {
+    background-color: #2B2E2E;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #2B2E2E;
+}
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            margin: 0px 0; /* 確保上下留有足夠的空間 */
+            clear: both; /* 確保標題不受其他浮動元素影響 */
+        }
+
+        main {
+            display: flex;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    width: 70%; /* 調整這裡，讓內容居中並保持一致的寬度 */
+    margin: 0 auto;
+}
+
+.logo img {
+    height: 50px;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+
+nav ul li {
+    margin-right: 20px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    font-family: 'Just Another Hand', cursive;
+    font-size: 24px;
+    position: relative;
+}
+
+nav ul li a:hover::after, 
+nav ul li a.active::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: white;
+    bottom: -2px;
+    left: 0;
+}
+
+        .comment-section {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .comment {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: left;
+            position: relative;
+            font-size: 14px;
+            color: #333;
+        }
+        .comment-input-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        #commentInput {
+            width: 100%;
+            max-width: 500px;
+            height: 45px; /* 與按鈕高度一致 */
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-sizing: border-box; /* 确保内边距和边框包含在内 */
+        }
+        .comment-button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            height: 45px; /* 與留言框高度一致 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px; /* 調整字體大小 */
+            line-height: 1; /* 确保行高合适 */
+        }
+        .comment-button:hover {
+            background: #0056b3;
+        }
+        .comment button {
+            position: absolute;
+            top: 19px;
+            right: 10px;
+            background: #ff4d4d;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .comment button:hover {
+            background: #ff1a1a;
+        }
+        .post {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            max-width: 800px; /* 確保貼文不會過寬 */
+    margin: 0 auto; /* 讓貼文置中 */
+        }
+        .post-header {
+            display: flex;
+            align-items: center;
+        }
+        .avatar {
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            margin-right: 10px;
+        }
+        .username {
+            font-weight: bold;
+        }
+        .post-time {
+            margin-left: auto;
+            color: #999;
+        }
+        .post-content {
+            margin-top: 10px;
+        }
+        .post-image{
+            width: 100%; /* 圖片充滿貼文區域 */
+    max-width: 150px; /* 限制圖片寬度 */
+    max-height: 150px; /* 限制圖片高度 */
+    object-fit: cover; /* 保持圖片的比例縮放 */
+    margin-right: 10px;
+    border-radius: 5px;
+        }
+
+        .post-video {
+            width: 100%;
+            max-width: 500px; /* 與貼文寬度一致 */
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+
+        .post-actions {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .like-count, .comment-count {
+            margin-right: 10px;
+        }
+
+        .create-post {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #007bff;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 36px;
+            line-height: 60px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 1000; /* 增加z-index以顯示在廣告區域之上 */
+        }
+      
+
+        /*新增貼文中的視窗外背景*/
+        .create-post-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        /*新增貼文中的視窗*/
+        .create-post-modal-content {
+            background-color: rgba(0, 0, 0, 0.5); /* 背景設為黑色 */
+            font-size: 16px;
+            font-family: 'Arial', sans-serif;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            width: 60%;
+            max-width: 500px; /* 你可以添加這個來限制最大寬度 */
+            min-height: 150px;
+            resize: vertical;
+            color: #fff; /* 字體顏色改為白色 */
+        }
+
+        .create-post-modal textarea, .create-post-modal input {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .create-post-modal button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            font-family: 'Arial', sans-serif; /* 修改字體 */
+}
+        .create-post-modal button:hover {
+            background: #0056b3;
+        }
+
+        .action-icon {
+            width: 20px; /* 調整這裡來控制圖示的寬度 */
+            height: 20px; /* 調整這裡來控制圖示的高度 */
+            margin-right: 5px; /* 調整圖片與文字之間的距離 */
+            cursor: pointer;
+        }
+        
+
+
+        .upload-label {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.upload-label:hover {
+    background-color: #0056b3;
+}
+
+.preview-container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-top: 10px;
+}
+
+.preview-container img,
+.preview-container video {
+    max-height: 100px;
+    margin-right: 10px;
+    border-radius: 5px;
+}
+
+.preview-container .arrow {
+    font-size: 24px;
+    color: #fff;
+    cursor: pointer;
+    align-self: center;
+    margin: 0 10px;
+}
+
+.media-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.media-container img {
+    max-width: 100%;
+    cursor: pointer;
+    margin-right: 10px;
+    border-radius: 5px;
+}
+
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    padding-top: 60px; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto;
+    background-color: rgba(0,0,0,0.9); /* 背景顏色加深，帶有透明效果 */
+}
+
+/* 模態中的圖片和影片樣式 */
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 80%;
+}
+
+/* 關閉按鈕樣式 */
+.close {
+    position: absolute;
+    top: 30px;
+    right: 35px;
+    color: #fff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* 上一張和下一張按鈕樣式 */
+.prev, .next {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    width: auto;
+    padding: 16px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 60px;
+    transition: 0.3s;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.prev {
+    left: 10%;
+}
+
+.next {
+    right: 10%;
+}
+
+/* 在hover時改變按鈕的顏色 */
+.prev:hover, .next:hover, .close:hover {
+    color: #bbb;
+}
+
+@media (max-width: 768px) {
+    .post {
+        width: 90%; /* 小螢幕時縮小貼文寬度 */
+    }
+
+    .comment-input-container {
+        flex-direction: column; /* 小螢幕時將留言區排成一列 */
+        width: 100%;
+    }
+
+    .create-post {
+        width: 50px; /* 縮小新增貼文按鈕 */
+        height: 50px;
+        font-size: 30px;
+        line-height: 50px;
+    }
+}
+@media (max-width: 768px) {
+    h1 {
+        font-size: 24px; /* 小螢幕時調小標題 */
+    }
+
+    .username, .post-time {
+        font-size: 14px; /* 調整貼文中的字體大小 */
+    }
+}

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Healthy Life - 計劃</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/plans.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap" rel="stylesheet">
@@ -17,10 +17,10 @@
         </div>
         <nav>
             <ul>
-                <li><a href="{{ url_for('homepage') }}" class="nav-link">Home</a></li>
-                <li><a href="{{ url_for('plans') }}" class="nav-link active">Plan</a></li>
-                <li><a href="{{ url_for('search') }}" class="nav-link ">Search</a></li>
-                <li><a href="{{ url_for('profile') }}" class="nav-link">Personal</a></li>
+                <li><a href="{{ url_for('homepage') }}" class="nav-link">首頁</a></li>
+                <li><a href="{{ url_for('plans') }}" class="nav-link active">計畫</a></li>
+                <li><a href="{{ url_for('search') }}" class="nav-link ">搜尋</a></li>
+                <li><a href="{{ url_for('profile') }}" class="nav-link">個人</a></li>
             </ul>
         </nav>
     </header>
@@ -37,6 +37,9 @@
             </table>
         </section>
     </main>
+    <div class="bmi-info">
+    <h2>計畫是根據每天算出的BMI來抓取過輕、過重或適中的預訂計畫，BMI < 18.5抓取的是過輕計畫，BMI >= 18.5 且 <= 25抓取的是適中計畫，BMI > 25抓取的是過重計畫，一個動作一分鐘中間休息三十秒。</h2>
+</div>
 
     <script src="/static/scripts/plans.js"></script>
 </body>

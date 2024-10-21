@@ -2,9 +2,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const exerciseTable = document.getElementById('exerciseTable');
     const today = new Date();
     let currentExerciseIndex = 0;
-    let exercises = []; // 在這裡初始化 exercises 變數
+    let exercises = [];
 
-    // 檢查後端是否有完成的狀態
     fetch('/get-plan-status', { method: 'GET' })
         .then(response => response.json())
         .then(data => {
@@ -19,49 +18,48 @@ document.addEventListener('DOMContentLoaded', function () {
             exerciseTable.innerHTML = `<tr><td>未能加載健身計劃，請稍後再試</td></tr>`;
         });
 
-// 加載用戶資料並檢查當天體重
-function loadProfileData() {
-    const dayOfWeek = today.toLocaleString('en-US', { weekday: 'long' });
+    // 加載用戶資料並檢查當天體重
+    function loadProfileData() {
+        const dayOfWeekEnglish = today.toLocaleString('en-US', { weekday: 'long' });
+        const dayOfWeekMap = {
+            'Monday': '星期一',
+            'Tuesday': '星期二',
+            'Wednesday': '星期三',
+            'Thursday': '星期四',
+            'Friday': '星期五',
+            'Saturday': '星期六',
+            'Sunday': '星期日'
+        };
+        const dayOfWeek = dayOfWeekMap[dayOfWeekEnglish];
 
-    // 檢查是否是星期天，如果是，直接顯示休息日計畫
-    if (dayOfWeek === 'Sunday') {
-        loadExercisePlan(null, dayOfWeek); // 傳遞 null 作為 bodyType，因為休息日不需要計算BMI
-        return;
+        if (dayOfWeek === '星期日') {
+            loadExercisePlan(null, dayOfWeek);
+            return;
+        }
+
+        fetch('/get-profile-data')
+            .then(response => response.json())
+            .then(data => {
+                const height = data.height;
+                const weight = data.weight_today;
+
+                if (!weight || !height) {
+                    exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入今日體重</td></tr>`;
+                } else {
+                    const bodyType = calculateBMI(height, weight);
+                    loadExercisePlan(bodyType, dayOfWeek);
+                }
+            })
+            .catch(error => {
+                console.error("獲取用戶數據時出錯:", error);
+                exerciseTable.innerHTML = `<tr><td>未能加載健身計劃，請稍後再試</td></tr>`;
+            });
     }
-
-    // 如果不是星期天，則檢查體重和身高
-    fetch('/get-profile-data')
-        .then(response => response.json())
-        .then(data => {
-            const height = data.height;
-            const weight = data.weight_today;  // 從後端獲取當天的體重
-
-            if (!weight || !height) {
-                exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入今日體重</td></tr>`;
-            } else {
-                const bodyType = calculateBMI(height, weight);
-                loadExercisePlan(bodyType, dayOfWeek);
-            }
-        })
-        .catch(error => {
-            console.error("獲取用戶數據時出錯:", error);
-            exerciseTable.innerHTML = `<tr><td>未能加載健身計劃，請稍後再試</td></tr>`;
-        });
-}
-
 
     // 計算 BMI
     function calculateBMI(height, weight) {
         const bmi = weight / ((height / 100) ** 2);
-        console.log(`計算出的 BMI: ${bmi}`);
-
-        if (bmi < 18.5) {
-            return 'thin';
-        } else if (bmi >= 18.5 && bmi < 25) {
-            return 'average';
-        } else {
-            return 'overweight';
-        }
+        return bmi < 18.5 ? 'thin' : (bmi >= 18.5 && bmi < 25 ? 'average' : 'overweight');
     }
 
     // 加載對應的健身計劃
@@ -69,107 +67,107 @@ function loadProfileData() {
         console.log(`加載健身計劃，Body Type: ${bodyType}, Day of Week: ${dayOfWeek}`);
         const fitnessPlans = {
             thin: {
-                Monday: [
+                星期一: [
                     { exercise: '俯臥撐', image: '俯臥撐.png' },
                     { exercise: '仰臥起坐', image: '仰臥起坐.png' },
                     { exercise: '登山跑', image: '登山跑.png' }
                 ],
-                Tuesday: [
+                星期二: [
                     { exercise: '深蹲', image: '深蹲.png' },
                     { exercise: '弓步蹲', image: '弓步蹲.png' },
                     { exercise: '側棒式支撐', image: '側棒式支撐.png' }
                 ],
-                Wednesday: [
+                星期三: [
                     { exercise: '平板支撐', image: '平板支撐.png' },
                     { exercise: '高抬腿', image: '高抬腿.png' },
                     { exercise: '仰臥自行車', image: '仰臥自行車.png' }
                 ],
-                Thursday: [
+                星期四: [
                     { exercise: '弓步蹲', image: '弓箭步.png' },
                     { exercise: '單腳硬拉', image: '單腳硬拉.png' },
                     { exercise: '跳躍深蹲', image: '跳躍深蹲.png' }
                 ],
-                Friday: [
+                星期五: [
                     { exercise: '波比跳', image: '波比跳.png' },
                     { exercise: '側步蹲', image: '側步蹲.png' },
                     { exercise: '肩膀挺舉', image: '肩膀挺舉.png' }
                 ],
-                Saturday: [
+                星期六: [
                     { exercise: '開合跳', image: '開合跳.png' },
                     { exercise: '仰臥腿舉', image: '仰臥腿舉.png' },
                     { exercise: '臀橋', image: '臀橋.png' }
                 ],
-                Sunday: [
+                星期日: [
                     { exercise: '休息日：放鬆並進行輕度伸展', image: null }
                 ]
             },
             average: {
-                Monday: [
+                星期一: [
                     { exercise: '凳上臂屈伸', image: '凳上臂屈伸.png' },
                     { exercise: '俯臥撐', image: '俯臥撐.png' },
                     { exercise: '跳繩', image: '跳繩.png' }
                 ],
-                Tuesday: [
+                星期二: [
                     { exercise: '凳上臂屈伸', image: '凳上臂屈伸.png' },
                     { exercise: '單臂啞鈴推舉', image: '單臂啞鈴推舉.png' },
                     { exercise: '側棒式支撐', image: '側棒式支撐.png' }
                 ],
-                Wednesday: [
+                星期三: [
                     { exercise: '高抬腿', image: '高抬腿.png' },
                     { exercise: '深蹲', image: '深蹲.png' },
                     { exercise: '俯臥撐', image: '俯臥撐.png' }
                 ],
-                Thursday: [
+                星期四: [
                     { exercise: '俯臥撐', image: '俯臥撐.png' },
                     { exercise: '凳上臂屈伸', image: '凳上臂屈伸.png' },
                     { exercise: '仰臥自行車', image: '仰臥自行車.png' }
                 ],
-                Friday: [
+                星期五: [
                     { exercise: '深蹲', image: '深蹲.png' },
                     { exercise: '弓步蹲', image: '弓步蹲.png' },
                     { exercise: '平板支撐', image: '平板支撐.png' }
                 ],
-                Saturday: [
+                星期六: [
                     { exercise: '高抬腿', image: '高抬腿.png' },
                     { exercise: '開合跳', image: '開合跳.png' },
                     { exercise: '肩膀挺舉', image: '肩膀挺舉.png' }
                 ],
-                Sunday: [
+                星期日: [
                     { exercise: '休息日：放鬆並進行輕度伸展', image: null }
                 ]
             },
             overweight: {
-                Monday: [
+                星期一: [
                     { exercise: '步行', image: '步行.png' },
                     { exercise: '牽拉運動', image: '牽拉運動.png' },
                     { exercise: '高抬腿', image: '高抬腿.png' }
                 ],
-                Tuesday: [
+                星期二: [
                     { exercise: '靠牆深蹲', image: '深蹲.png' },
                     { exercise: '臀橋', image: '臀橋.png' },
                     { exercise: '仰臥腿舉', image: '仰臥腿舉.png' }
                 ],
-                Wednesday: [
+                星期三: [
                     { exercise: '爬樓梯', image: '爬樓梯.png' },
                     { exercise: '深蹲', image: '深蹲.png' },
                     { exercise: '側步蹲', image: '側步蹲.png' }
                 ],
-                Thursday: [
+                星期四: [
                     { exercise: '跪姿俯臥撐', image: '俯臥撐.png' },
                     { exercise: '平板支撐', image: '平板支撐.png' },
                     { exercise: '臀橋', image: '臀橋.png' }
                 ],
-                Friday: [
+                星期五: [
                     { exercise: '凳上臂屈伸', image: '凳上臂屈伸.png' },
                     { exercise: '仰臥腿舉', image: '仰臥腿舉.png' },
                     { exercise: '爬樓梯', image: '爬樓梯.png' }
                 ],
-                Saturday: [
+                星期六: [
                     { exercise: '登山跑', image: '登山跑.png' },
                     { exercise: '跳繩', image: '跳繩.png' },
                     { exercise: '側棒式支撐', image: '側棒式支撐.png' }
                 ],
-                Sunday: [
+                星期日: [
                     { exercise: '休息日：放鬆並進行輕度伸展', image: null }
                 ]
             }
@@ -177,12 +175,12 @@ function loadProfileData() {
 
         const todayExercises = fitnessPlans[bodyType]?.[dayOfWeek];
 
-        if (dayOfWeek === 'Sunday') {
+        if (dayOfWeek === '星期日') {
             // 如果是星期天，顯示休息日
             exerciseTable.innerHTML = `
                 <tr>
-                    <th>Day</th>
-                    <th>Exercise</th>
+                    <th>日期</th>
+                    <th>訓練計畫</th>
                 </tr>
                 <tr>
                     <td>${dayOfWeek}</td>
@@ -203,8 +201,8 @@ function loadProfileData() {
     function displayExercise(exerciseObj, dayOfWeek) {
         exerciseTable.innerHTML = `
             <tr>
-                <th>Day</th>
-                <th>Exercise</th>
+                <th>日期</th>
+                <th>訓練計畫</th>
             </tr>
             <tr>
                 <td>${dayOfWeek}</td>

@@ -18,7 +18,7 @@ def get_db_connection():
         host='localhost',
         port='3306',
         user='root',
-        password='11046061',
+        password='figs0630',
         database='healthy'
     )
     return connection
@@ -27,63 +27,6 @@ def get_db_connection():
 UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-
-"""@app.route('/', methods=['POST', 'GET'])
-def ask():
-
-  # 當是POST的時後，就去呼叫Open AI的API，然後把問題送出去
-  # 把答案拿回來在送給前端
-  if request.method == "POST":
-    prompt = request.form['prompt']
-    result = {}
-    result['ai_answer'] = openapi.get_open_ai_api_chat_response(prompt)
-    return jsonify(result)
-  return render_template('search.html', **locals())"""
-
-
-# API調用
-'''def get_answer_from_chatgpt(question):
-    try:
-        openai_api_key = os.getenv('OPENAI_API_KEY')
-
-        
-        response = openai.Completion.create(
-            engine="davinci",
-            prompt=question,
-            max_tokens=150
-        )
-        return response.choices[0].text.strip()
-    except Exception as e:
-        return f"Error: {str(e)}"#'''
-
-
-# 路由處理
-'''@app.route('/ask', methods=['POST'])
-def ask():
-    if 'logged_in' not in session or 'user_id' not in session:
-        return jsonify({'error': 'User not logged in or session is missing user_id'}), 403
-
-    user_question = request.json.get('question')  # 從JSON數據中獲取問題
-    member_id = session.get('user_id')  # 從session中獲取用戶ID
-
-    if member_id is None:
-        return jsonify({'error': 'Session does not contain a valid member ID'}), 400
-
-    # 從ChatGPT獲取答案
-    answer = get_answer_from_chatgpt(user_question)
-
-    # 存儲問題和答案到資料庫
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        "INSERT INTO questions (member_id, question, answer) VALUES (%s, %s, %s)",
-        ( member_id, user_question, answer)
-    )
-    connection.commit()
-    cursor.close()
-    connection.close()
-
-    return jsonify({'question': user_question, 'answer': answer})'''
 
 @app.route('/')
 def home():
@@ -243,8 +186,6 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
-
 @app.route('/get_posts', methods=['GET'])
 def get_posts():
     connection = get_db_connection()
@@ -257,41 +198,39 @@ def get_posts():
     """)
     posts = cursor.fetchall()
 
+    user_id = session.get('id')  # 獲取當前用戶的ID
+
     for post in posts:
+        # 獲取貼文的圖片
         cursor.execute("SELECT * FROM post_images WHERE post_id = %s", (post['id'],))
         post['images'] = [url_for('static', filename=f'uploads/{img["image_path"]}') for img in cursor.fetchall()]
 
+        # 獲取貼文的影片
         cursor.execute("SELECT * FROM post_videos WHERE post_id = %s", (post['id'],))
         post['videos'] = [url_for('static', filename=f'uploads/{vid["video_path"]}') for vid in cursor.fetchall()]
 
+        # 獲取貼文的評論
         cursor.execute("""
             SELECT comments.*, members.username 
             FROM comments
             JOIN members ON comments.members_id = members.id
             WHERE post_id = %s
+            ORDER BY comments.created_at ASC
         """, (post['id'],))
         comments = cursor.fetchall()
 
+        # 處理每條評論
         for comment in comments:
             comment['deletable'] = comment['members_id'] == session.get('id')
 
-            # 加強防錯邏輯以避免 None 和 KeyError 問題
-            try:
-                cursor.execute("SELECT COUNT(*) AS likes_count FROM comment_likes WHERE comment_id = %s", (comment['id'],))
-                like_result = cursor.fetchone()
+            # 獲取評論的按讚數
+            cursor.execute("SELECT COUNT(*) AS likes_count FROM comment_likes WHERE comment_id = %s", (comment['id'],))
+            like_result = cursor.fetchone()
+            comment['likes'] = like_result['likes_count'] if like_result and 'likes_count' in like_result else 0
 
-                # 使用安全檢查來避免 KeyError
-                if like_result is not None and 'likes_count' in like_result:
-                    comment['likes'] = like_result['likes_count']
-                else:
-                    comment['likes'] = 0
-
-            except Exception as e:
-                print(f"Error fetching likes for comment {comment['id']}: {e}")
-                comment['likes'] = 0
-
-            if session.get('id'):
-                cursor.execute("SELECT COUNT(*) AS liked FROM comment_likes WHERE comment_id = %s AND members_id = %s", (comment['id'], session.get('id')))
+            # 確認當前用戶是否按讚過該評論
+            if user_id:
+                cursor.execute("SELECT COUNT(*) AS liked FROM comment_likes WHERE comment_id = %s AND members_id = %s", (comment['id'], user_id))
                 user_liked_result = cursor.fetchone()
                 comment['user_liked'] = user_liked_result['liked'] > 0 if user_liked_result else False
             else:
@@ -299,14 +238,19 @@ def get_posts():
 
         post['comments'] = comments
 
+        # 確認當前用戶是否按讚過該貼文
+        if user_id:
+            cursor.execute("SELECT COUNT(*) AS liked FROM likes WHERE post_id = %s AND members_id = %s", (post['id'], user_id))
+            post_liked_result = cursor.fetchone()
+            post['user_liked'] = post_liked_result['liked'] > 0 if post_liked_result else False
+        else:
+            post['user_liked'] = False
+
+
     cursor.close()
     connection.close()
+
     return jsonify({'posts': posts})
-
-
-
-
-
 
 
 @app.route('/get_post_images/<int:post_id>')
@@ -320,7 +264,6 @@ def get_post_images(post_id):
     connection.close()
     return jsonify({'images': image_urls})
 
-
 @app.route('/get_post_videos/<int:post_id>')
 def get_post_videos(post_id):
     connection = get_db_connection()
@@ -332,14 +275,15 @@ def get_post_videos(post_id):
     connection.close()
     return jsonify({'videos': video_urls})
 
-
 @app.route('/add_comment', methods=['POST'])
 def add_comment():
     data = request.json
     post_id = data.get('post_id')
     content = data.get('content').strip()
     member_id = session.get('id')
-
+    parent_comment_id = data.get('parent_comment_id')  # 新增這個欄位來接收父留言的ID
+    
+    # 檢查留言內容是否為空
     if not content:
         return jsonify({"status": "error", "message": "留言內容不能為空"})
 
@@ -349,18 +293,19 @@ def add_comment():
     # 檢查該用戶在該貼文下是否有重複的留言
     cursor.execute("""
         SELECT * FROM comments 
-        WHERE post_id = %s AND members_id = %s AND content = %s
-    """, (post_id, member_id, content))
+        WHERE post_id = %s AND members_id = %s AND content = %s AND parent_comment_id = %s
+    """, (post_id, member_id, content, parent_comment_id))
     existing_comment = cursor.fetchone()
 
+    # 如果找到相同的留言，返回錯誤
     if existing_comment:
         return jsonify({"status": "error", "message": "重複的留言"})
 
     # 插入新留言
     cursor.execute("""
-        INSERT INTO comments (post_id, members_id, content) 
-        VALUES (%s, %s, %s)
-    """, (post_id, member_id, content))
+        INSERT INTO comments (post_id, members_id, content, parent_comment_id) 
+        VALUES (%s, %s, %s, %s)
+    """, (post_id, member_id, content, parent_comment_id))
     connection.commit()
     comment_id = cursor.lastrowid
 
@@ -368,14 +313,6 @@ def add_comment():
     connection.close()
 
     return jsonify({"status": "success", "comment_id": comment_id, "username": session.get('username')})
-
-
-
-
-
-
-
-
 
 @app.route('/delete_comment/<int:comment_id>', methods=['DELETE'])
 def delete_comment(comment_id):
@@ -444,14 +381,12 @@ def like_post():
     likes_count = cursor.fetchone()[0] or 0  # 如果為 None 設置為 0
 
     cursor.execute("UPDATE posts SET likes = %s WHERE id = %s", (likes_count, post_id))
-
+    
     connection.commit()
     cursor.close()
     connection.close()
 
     return jsonify({"status": "success", "likes": likes_count})
-
-
 
 @app.route('/unlike_post', methods=['POST'])
 def unlike_post():
@@ -509,8 +444,6 @@ def like_comment():
     finally:
         cursor.close()
         connection.close()
-
-
 
 @app.route('/delete_post/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
@@ -592,31 +525,35 @@ def profile():
     }
 
     return render_template('profile.html', **user_info)
+
 #刪除會員資料
 @app.route('/delete_member', methods=['POST'])
 def delete_member():
-    if not session.get('logged_in'):
-        flash('You need to log in to delete your account.', 'error')
-        return redirect(url_for('login'))
+    user_id = session.get('id')
+    if user_id:
+        connection = get_db_connection()
+        cursor = connection.cursor()
 
-    email = session.get('email')
-    if email:
-        try:
-            with get_db_connection() as conn:
-                with conn.cursor() as cursor:
-                    query = "DELETE FROM members WHERE email = %s"
-                    cursor.execute(query, (email,))
-                    conn.commit()
-            # 清除 session 中所有資料
-            session.clear()
-            flash('Your account has been deleted.', 'success')
-            return redirect(url_for('login'))
-        except mysql.connector.Error as e:
-            flash(str(e), 'error')
-            return redirect(url_for('profile'))
-    else:
-        flash('Unable to find your account information.', 'error')
-        return redirect(url_for('profile'))
+        # 先刪除 likes 表中的相關記錄
+        cursor.execute('DELETE FROM likes WHERE members_id = %s', (user_id,))
+
+        # 先刪除 user_fitness_data 表中的相關記錄
+        cursor.execute('DELETE FROM user_fitness_data WHERE user_id = %s', (user_id,))
+
+        # 再刪除會員本身
+        cursor.execute('DELETE FROM members WHERE id = %s', (user_id,))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+        session.clear()  # 清除登入狀態
+        return redirect(url_for('login'))  # 刪除成功後回到首頁
+    return redirect(url_for('profile'))
+
+
+
+
+
     
 @app.route('/get-plan-status', methods=['GET'])
 def get_plan_status():
@@ -745,14 +682,11 @@ def get_weight_history():
         return jsonify({'error': 'Failed to get weight history'}), 500
 
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 def logout():
-    session.pop('logged_in', None)
-    session.pop('username', None)
-    session.pop('email', None)
-    session.pop('birthday', None)
-    flash('You have been logged out.')
-    return redirect(url_for('login'))
+    session.clear()  # 清除 session
+    return redirect(url_for('login'))  # 返回首頁
+
 
 if __name__ == '__main__':
     app.run(debug=True)

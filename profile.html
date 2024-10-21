@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Healthy Life - 個人頁面</title>
+    <title>Healthy Life - 個人</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,10 +18,10 @@
         </div>
         <nav>
             <ul>
-                <li><a href="{{ url_for('homepage') }}" class="nav-link">Home</a></li>
-                <li><a href="{{ url_for('plans') }}" class="nav-link active">Plan</a></li>
-                <li><a href="{{ url_for('search') }}" class="nav-link">Search</a></li>
-                <li><a href="{{ url_for('profile') }}" class="nav-link">Personal</a></li>
+                <li><a href="{{ url_for('homepage') }}" class="nav-link">首頁</a></li>
+                <li><a href="{{ url_for('plans') }}" class="nav-link ">計畫</a></li>
+                <li><a href="{{ url_for('search') }}" class="nav-link">搜尋</a></li>
+                <li><a href="{{ url_for('profile') }}" class="nav-link active">個人</a></li>
             </ul>
         </nav>
     </header>
@@ -31,12 +31,10 @@
                 <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="頭貼" class="avatar">
                 <div>
                     <h2>{{ session.username }}</h2>
-                    <div class="follow-stats">
-                        <div>追蹤數: <span id="follower-count">380</span></div>
-                        <div>好友數: <span id="friend-count">460</span></div>
-                    </div>
                 </div>
+                
                 <button class="settings-button" onclick="showSettings()">設定</button>
+            
             </div>
 
             <div class="profile-body">
@@ -53,13 +51,8 @@
                     </form>
 
                     <!-- 體重歷史折線圖 -->
-                    <h3>體重歷史</h3>
+                    <h3>歷史BMI</h3>
                     <canvas id="weightChart" width="400" height="200"></canvas>
-                </div>
-                <div class="achievements">
-                    <h3>達到的健身徽章、成就</h3>
-                    <div class="badge">🏅 初級健身達人</div>
-                    <div class="badge">🏆 連續健身100天</div>
                 </div>
             </div>
 
@@ -76,7 +69,7 @@
         {% endif %}
     </main>
 
-    <script src="/static/scripts/profile.js"></script>
+    <script src="static/scripts/profile.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  <!-- 引入 Chart.js -->
 </body>
 </html>

@@ -13,7 +13,7 @@ import imageio
 # 設定資料庫連接
 db_config = {
     'user': 'root',
-    'password': '11046067',
+    'password': 'figs0630',
     'host': 'localhost',
     'database': 'healthy'
 }
@@ -23,6 +23,7 @@ conn = mysql.connector.connect(**db_config)
 cursor = conn.cursor()
 
 mask = np.array(Image.open("test2.jpg"))
+
 # 定義與運動及飲食相關的關鍵詞
 keywords = ['運動', '健身', '瑜伽', '跑步', '飲食', '營養', '蛋白質', '碳水化合物', '減肥', '握推', '深蹲']
 
@@ -52,29 +53,28 @@ max_words = 100
 sorted_words = sorted(zip(tfidf_vectorizer.idf_, feature_names), reverse=True)[:max_words]
 filtered_text = " ".join([word for score, word in sorted_words])
 
-# 載入舉重遮罩圖像
-"""mask_image_path = 'wilthe.jpg'  # 確保遮罩圖片路徑正確
-mask_image = Image.open(mask_image_path).convert('L')  # 轉換為灰度圖像
-mask_array = np.array(mask_image)  # 將圖像轉換為數組"""
-
 # 生成文字雲，使用支持繁體中文的字體並應用舉重遮罩
 wordcloud = WordCloud(
     font_path='C:/Windows/Fonts/MSJH.TTC',  # 確保字體支持繁體中文
-    width=800,
-    height=400,
+    width=400,   # 調小寬度
+    height=200,  # 調小高度
+    margin=1,    # 減少邊框，默認為2，設置為1
     background_color='white',
     mask=imageio.imread('wilthe.jpg'),
     contour_color='black',  # 這樣可以讓邊界更清晰
     contour_width=1  # 調整邊界的寬度
 ).generate(filtered_text)
 
-# 顯示文字雲
-plt.figure(figsize=(10, 5))
+# 顯示文字雲並調整圖像顯示大小
+plt.figure(figsize=(5, 2.5))
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis('off')  # 隱藏軸線
 
-# 保存圖片到文件
-plt.savefig('wordcloud_image.png', format='png')
+# 調整圖像布局，減少白邊
+plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
+# 保存圖片到文件，設置 dpi 控制圖片解析度
+plt.savefig('wordcloud_image_small.png', format='png', dpi=150, bbox_inches='tight', pad_inches=0)
 plt.show()
 
 # 關閉資料庫連接

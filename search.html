@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Healthy Life - Search</title>
+    <title>Healthy Life - 搜尋</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,28 +17,27 @@
         </div>
         <nav>
             <ul>
-                <li><a href="{{ url_for('homepage') }}" class="nav-link">Home</a></li>
-                <li><a href="{{ url_for('plans') }}" class="nav-link">Plan</a></li>
-                <li><a href="{{ url_for('search') }}" class="nav-link active">Search</a></li>
-                <li><a href="{{ url_for('profile') }}" class="nav-link">Personal</a></li>
+                <li><a href="{{ url_for('homepage') }}" class="nav-link">首頁</a></li>
+                <li><a href="{{ url_for('plans') }}" class="nav-link">計畫</a></li>
+                <li><a href="{{ url_for('search') }}" class="nav-link active">搜尋</a></li>
+                <li><a href="{{ url_for('profile') }}" class="nav-link">個人</a></li>
             </ul>
         </nav>
     </header>
 
     <main style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-        <!-- 分頁區域 -->
         <div class="tabs">
-            <div class="tab active" data-tab="search-tab">Search</div>
-            <div class="tab" data-tab="history-tab">History</div>
+            <div class="tab active" data-tab="search-tab">搜尋</div>
+            <div class="tab" data-tab="history-tab">紀錄</div>
         </div>
 
         <!-- 搜尋區域 -->
         <div id="search-tab" class="tab-content active">
             <div class="search-container">
-                <input type="text" placeholder="Search..." class="search-input">
+                <input type="text" placeholder="搜尋..." class="search-input">
                 <button class="search-button">
                     <img src="{{ url_for('static', filename='images/search.png') }}" alt="Search Icon" class="search-icon">
-                    Search
+                    搜尋
                 </button>
             </div>
             <div id="results" class="results"></div>
@@ -47,18 +46,21 @@
         <!-- 歷史記錄區域 -->
         <div id="history-tab" class="tab-content">
             <div class="history-container">
-                <h2>Your History</h2>
-                <img src="{{ url_for('static', filename='images/wordcloud_image.png') }}" alt="Word Cloud" id="wordcloud-image">
+                <h2>您的歷史紀錄</h2>
+                <h2>個用戶的熱搜文字雲:</h2>
+                <div class="image-wrapper" style="text-align: center;">
+                    <img src="{{ url_for('static', filename='images/wordcloud_image.png') }}" alt="Word Cloud" id="wordcloud-image">
+                </div>
                 {% if history %}
                     {% for item in history %}
                         <div class="history-item">
-                            <p><strong>Question:</strong> {{ item[0] }}</p>
-                            <p><strong>Answer:</strong> {{ item[1] }}</p>
+                            <p><strong>問題:</strong> {{ item[0] }}</p>
+                            <p><strong>回答:</strong> {{ item[1] }}</p>
                             <p class="timestamp">{{ item[2] }}</p>
                         </div>
                     {% endfor %}
                 {% else %}
-                    <p>No history found.</p>
+                    <p>未找到歷史紀錄。</p>
                 {% endif %}
             </div>
         </div>
@@ -66,7 +68,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Tab 切換功能
             document.querySelectorAll('.tab').forEach(function(tab) {
                 tab.addEventListener('click', function() {
                     document.querySelectorAll('.tab').forEach(function(t) {
@@ -76,64 +77,27 @@
                         content.classList.remove('active');
                     });
                     this.classList.add('active');
-                    var activeTabContent = document.getElementById(this.getAttribute('data-tab'));
-                    activeTabContent.classList.add('active');
-
-                    // 檢查是否切換到了歷史記錄標籤
-                    if (this.getAttribute('data-tab') === 'history-tab') {
-                        // 刷新文字雲圖片
-                        var wordCloudImage = document.getElementById('wordcloud-image');
-                        var src = wordCloudImage.src;
-                        wordCloudImage.src = ''; // 清空src
-                        wordCloudImage.src = src + '?' + new Date().getTime(); // 添加時間戳迫使刷新
-                    }
+                    document.getElementById(this.getAttribute('data-tab')).classList.add('active');
                 });
             });
 
-            // 搜尋按鈕點擊事件
             document.querySelector('.search-button').addEventListener('click', function() {
-                var searchButton = this;
                 var userInput = document.querySelector('.search-input').value;
-
                 if (userInput.trim() !== '') {
-                    searchButton.disabled = true;
-
                     fetch('/search', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            prompt: userInput,
-                            member_id: '{{ session["user_id"] }}'
-                        })
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: userInput })
                     })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok ' + response.statusText);
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
                         var resultsDiv = document.getElementById('results');
                         resultsDiv.innerHTML = '';
                         if (data.ai_answer) {
-                            var p = document.createElement('p');
-                            var cleanedAnswer = data.ai_answer.replace(/<br\s*\/?>/gi, ' '); // 移除 <br> 標籤
-                            p.innerHTML = cleanedAnswer;
-                            resultsDiv.appendChild(p);
-                        } else if (data.error) {
-                            resultsDiv.innerText = data.error;
+                            resultsDiv.innerHTML = data.ai_answer.replace(/<br\s*\/?>/gi, ' ');
                         } else {
-                            throw new Error('No answer returned from the server');
+                            resultsDiv.innerHTML = '未找到結果';
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Failed to get response: ' + error.message);
-                    })
-                    .finally(() => {
-                        searchButton.disabled = false;
                     });
                 }
             });
