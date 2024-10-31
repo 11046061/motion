@@ -52,13 +52,6 @@
     </div>
 </div>
 
-
-    
-    <div class="sidebar left">
-        <a href="#privacy-policy">隱私政策</a>
-        <a href="#terms-of-service">使用者政策</a>
-        <!-- 廣告區塊 -->
-    </div>
     
     <div class="sidebar right">
         <!-- 廣告區塊 -->
@@ -118,7 +111,7 @@
                             <img src="${image}" class="post-image" data-post-id="${post.id}" data-index="${index}" onclick="openImageModal(${post.id}, ${index})">
                         </div>`;
         });
-
+            
         // 顯示多張圖片時的 "+更多" 圖示
         if (images.length > maxImages) {
             const remaining = images.length - maxImages;
@@ -145,6 +138,11 @@
         }
 
         let commentsHTML = '';
+        let deleteButton = '';
+        
+        if (post.is_owner) {  // 判斷當前用戶是否是貼文擁有者
+            deleteButton = `<button onclick="deletePost(${post.id})">刪除</button>`;
+        }
         if (post.comments && post.comments.length > 0) {
             post.comments.forEach(comment => {
                 commentsHTML += `
@@ -172,39 +170,39 @@
         // 判斷是否按讚，顯示不同的按讚圖示
         
 
-    let likeIcon = post.user_liked ? "{{ url_for('static', filename='images/like1.png') }}" : "{{ url_for('static', filename='images/like.png') }}";
+        let likeIcon = post.user_liked ? "{{ url_for('static', filename='images/like1.png') }}" : "{{ url_for('static', filename='images/like.png') }}";
 
-
+        
 
         return `
-            <div class="post" id="post-${post.id}">
-                <div class="post-header">
-                    <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="Avatar" class="avatar">
-                    <div class="username">${post.username}</div>
-                    <div class="post-time">${formatTime(new Date(post.created_at))}</div>
-                    <button onclick="deletePost(${post.id})">刪除</button>
-                </div>
-                <div class="post-content">
-                    <p>${post.content}</p>
-                    <div class="media-container" style="display: flex;">
-                        ${content}
-                    </div>
-                </div>
-                <div class="post-actions">
-                    <img src="${likeIcon}" alt="Like" class="action-icon like-icon" onclick="toggleLike(${post.id})">
-                    <div class="like-count">按讚: ${post.likes}</div>
-                    <img src="{{ url_for('static', filename='images/mess.png') }}" alt="Comment" class="action-icon comment-icon" onclick="showCommentSection(${post.id})">
-                    <div class="comment-count">留言: ${post.comments.length}</div>
-                </div>
-                <div class="comment-section" id="commentSection_${post.id}">
-                    ${commentsHTML}
-                    <div class="comment-input-container">
-                        <textarea id="commentInput_${post.id}" placeholder="輸入留言..."></textarea>
-                        <button class="comment-button" onclick="addComment(${post.id})">傳送</button>
-                    </div>
+        <div class="post" id="post-${post.id}">
+            <div class="post-header">
+                <img src="/static/images/avatar.png" alt="Avatar" class="avatar">
+                <div class="username">${post.username}</div>
+                <div class="post-time">${formatTime(new Date(post.created_at))}</div>
+                ${deleteButton}  <!-- 只有擁有者能看到刪除按鈕 -->
+            </div>
+            <div class="post-content">
+                <p>${post.content}</p>
+                <div class="media-container" style="display: flex;">
+                    ${content}
                 </div>
             </div>
-        `;
+            <div class="post-actions">
+                <img src="${likeIcon}" alt="Like" class="action-icon like-icon" onclick="toggleLike(${post.id})">
+                <div class="like-count">按讚: ${post.likes}</div>
+                <img src="/static/images/mess.png" alt="Comment" class="action-icon comment-icon" onclick="showCommentSection(${post.id})">
+                <div class="comment-count">留言: ${post.comments.length}</div>
+            </div>
+            <div class="comment-section" id="commentSection_${post.id}">
+                ${commentsHTML}
+                <div class="comment-input-container">
+                    <textarea id="commentInput_${post.id}" placeholder="輸入留言..."></textarea>
+                    <button class="comment-button" onclick="addComment(${post.id})">傳送</button>
+                </div>
+            </div>
+        </div>
+    `;
         }
 
 
@@ -363,7 +361,37 @@
             });
         });
 
+        document.getElementById('post-image').addEventListener('change', function() {
+            validateFiles(this, 'image');
+        });
+        
+        document.getElementById('post-video').addEventListener('change', function() {
+            validateFiles(this, 'video');
+        });
 
+        function validateFiles(inputElement, type) {
+            const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            const allowedVideoTypes = ['video/mp4', 'video/webm'];
+            const files = inputElement.files;
+            
+            for (let file of files) {
+                if (type === 'image' && !allowedImageTypes.includes(file.type)) {
+                    alert('只允許上傳 JPG 或 PNG 圖片');
+                    inputElement.value = ''; // 清空檔案，防止不合規檔案上傳
+                    return;
+                }
+                if (type === 'video' && !allowedVideoTypes.includes(file.type)) {
+                    alert('只允許上傳 MP4 或 WebM 視頻');
+                    inputElement.value = ''; // 清空檔案
+                    return;
+                }
+                if (file.size > 5 * 1024 * 1024) { // 檢查檔案大小
+                    alert('檔案大小不可超過 5MB');
+                    inputElement.value = ''; // 清空檔案
+                    return;
+                }
+            }
+        }
 
 
         function createCommentHTML(comment) {
@@ -615,14 +643,28 @@
 
 
         function deletePost(postId) {
-            fetch(`/delete_post/${postId}`, { method: 'DELETE' })
+            // 發送刪除請求到後端
+            fetch(`/delete_post/${postId}`, {
+                method: 'DELETE'
+            })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    document.getElementById(`post-${postId}`).remove();
+                    // 刪除成功後，從 DOM 中移除這個貼文
+                    const postElement = document.getElementById(`post-${postId}`);
+                    if (postElement) {
+                        postElement.remove();  // 移除該貼文的 HTML 元素
+                    }
+                } else {
+                    alert(data.message);  // 如果刪除失敗，顯示錯誤訊息
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('刪除失敗，請稍後再試');
             });
         }
+
 
         function unlikePost(postId) {
             fetch('/unlike_post', {
@@ -666,11 +708,12 @@
             fetch('/get_posts')
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data);  // 檢查後端返回的資料結構
+                    console.log(data.posts);  // 檢查後端返回的資料結構
                     const postsContainer = document.getElementById('posts-container');
                     postsContainer.innerHTML = ''; // 清空容器
 
                     data.posts.forEach(post => {
+                        console.log(`Post ID: ${post.id}, Is Owner: ${post.is_owner}`);  // 調試輸出
                         const postHTML = createPostHTML(post);  // 生成貼文HTML
                         postsContainer.innerHTML += postHTML;
 
