@@ -27,49 +27,69 @@
     </header>
     <main>
         {% if session.logged_in %}
-            <div class="profile-header">
-                <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="頭貼" class="avatar">
-                <div>
-                    <h2>{{ session.username }}</h2>
+        <!-- 頭像、名字和設定按鈕 -->
+        <div class="profile-header">
+            <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="頭貼" class="avatar">
+            <div>
+                <h2>{{ session.username }}</h2>
+            </div>
+            <div class="dropdown">
+                <button class="settings-button" onclick="showModal()">設定</button>
+                <!-- Modal with Delete Account and Logout Options -->
+                <div class="modal" id="settingsModal">
+                    <div class="modal-content">
+                        <form id="delete-form" action="{{ url_for('delete_member') }}" method="POST">
+                            <button type="submit" onclick="return confirmDelete()">刪除帳戶</button>
+                        </form>
+                        <form id="logout-form" action="{{ url_for('logout') }}" method="POST">
+                            <button type="submit">登出</button>
+                        </form>
+                        <button onclick="closeModal()">關閉</button> <!-- Close button -->
+                    </div>
                 </div>
-                
-                <button class="settings-button" onclick="showSettings()">設定</button>
-            
+
             </div>
+        </div>
 
-            <div class="profile-body">
-                <div class="fitness-data">
-                    <h3>個人健身數據</h3>
-                    <form id="profileForm">
-                        <label for="height">身高 (cm):</label>
-                        <input type="number" id="height" placeholder="輸入您的身高">
-                        
-                        <label for="weight">體重 (kg):</label>
-                        <input type="number" id="weight" placeholder="輸入您的體重">
-                        
-                        <button type="submit">儲存資料</button>
-                    </form>
+        
 
-                    <!-- 體重歷史折線圖 -->
-                    <h3>歷史BMI</h3>
-                    <canvas id="weightChart" width="400" height="200"></canvas>
-                </div>
-            </div>
-
-            <div class="button-container">
-                <form id="delete-form" action="{{ url_for('delete_member') }}" method="POST" onsubmit="return confirmDelete()">
-                    <button type="submit">刪除帳戶</button>
+        <!-- 新增白底框包圍個人數據和BMI圖表 -->
+        <div class="profile-container">
+            <div class="fitness-data">
+                <h3>個人健身數據</h3>
+                <form id="profileForm">
+                    <label for="height">身高 (公分):</label>
+                    <input type="number" id="height" placeholder="輸入您的身高">
+                    
+                    <label for="weight">體重 (公斤):</label>
+                    <input type="number" id="weight" placeholder="輸入您的體重">
+                    
+                    <button type="submit">儲存資料</button>
                 </form>
-                <form id="logout-form" action="{{ url_for('logout') }}" method="POST">
-                    <button type="submit">登出</button>
-                </form>
+
+                <!-- BMI歷史折線圖 -->
+                <h3>歷史BMI</h3>
+                <canvas id="weightChart" width="400" height="200"></canvas>
+
+                <!-- 顯示當前BMI狀態的橫條圖 -->
+                <h3>當前BMI狀態</h3>
+                <canvas id="bmiStatusChart" width="400" height="200"></canvas>
+
+                <!-- 體重紀錄折線圖 -->
+                <h3>體重紀錄</h3>
+                <canvas id="weightHistoryChart" width="400" height="200"></canvas>
+
+                <!-- 目標體重展示 -->
+                <h3>目標體重：<span id="targetWeight"></span></h3>
             </div>
+        </div>
+
         {% else %}
             <p>請先<a href="{{ url_for('login') }}">登錄</a>以查看您的個人資料。</p>
         {% endif %}
     </main>
 
     <script src="static/scripts/profile.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>

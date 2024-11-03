@@ -42,7 +42,10 @@
             </div>
             <div id="results" class="results"></div>
         </div>
-
+        <div id="ai-helper" class="ai-helper">
+            這裡是AI小幫手，可以詢問運動或飲食相關的問題
+        </div>
+        
         <!-- 歷史記錄區域 -->
         <div id="history-tab" class="tab-content">
             <div class="history-container">
@@ -68,18 +71,27 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.tab').forEach(function(tab) {
-                tab.addEventListener('click', function() {
-                    document.querySelectorAll('.tab').forEach(function(t) {
-                        t.classList.remove('active');
-                    });
-                    document.querySelectorAll('.tab-content').forEach(function(content) {
-                        content.classList.remove('active');
-                    });
-                    this.classList.add('active');
-                    document.getElementById(this.getAttribute('data-tab')).classList.add('active');
-                });
+    // 頁籤切換邏輯
+    document.querySelectorAll('.tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.tab').forEach(function(t) {
+                t.classList.remove('active');
             });
+            document.querySelectorAll('.tab-content').forEach(function(content) {
+                content.classList.remove('active');
+            });
+            this.classList.add('active');
+            document.getElementById(this.getAttribute('data-tab')).classList.add('active');
+
+            // 控制AI小幫手的顯示和隱藏
+            if (this.getAttribute('data-tab') === 'search-tab') {
+                document.getElementById('ai-helper').style.display = 'block';
+            } else {
+                document.getElementById('ai-helper').style.display = 'none';
+            }
+        });
+    });
+
 
             document.querySelector('.search-button').addEventListener('click', function() {
                 var userInput = document.querySelector('.search-input').value;
@@ -101,6 +113,8 @@
                     });
                 }
             });
+            
+
         });
     </script>
 </body>
