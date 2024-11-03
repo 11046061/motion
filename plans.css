@@ -66,17 +66,32 @@ main {
 table {
     width: 100%;
     border-collapse: collapse;
+    background-color: #444; /* 設置表格背景顏色 */
 }
 
 table, th, td {
     border: 1px solid white;
     padding: 10px;
-    text-align: left;
+    text-align: center; /* 讓表格中的文字置中 */
 }
 
-th {
-    background-color: #333;
+th, td {
+    font-size: 18px; /* 將字體大小調大 */
+    padding: 15px;   /* 增加表格單元格內的間距 */
+    text-align: center; /* 讓文字置中 */
 }
+
+
+th {
+    background-color: #333; /* 保持表頭背景顏色 */
+    font-weight: bold; /* 表頭字體加粗 */
+}
+
+td {
+    padding: 10px; /* 減少內邊距以縮小高度 */
+    text-align: center;
+}
+
 
 .timer-display {
     text-align: center;
@@ -119,5 +134,58 @@ body img:not(.logo img) {
 .bmi-info h2 {
     font-size: 18px;
     line-height: 1.5;
+}
+
+.complete-message {
+    color: yellow; /* 設置字體為黃色 */
+    font-size: 24px; /* 設置字體大小 */
+    text-align: center; /* 置中顯示 */
+    font-weight: bold; /* 粗體顯示 */
+}
+
+#exerciseName {
+    font-size: 24px;  /* 調大字體大小 */
+    font-weight: bold;
+    text-align: center;
+}
+
+.exercise-image {
+    width: 100px; /* 調整圖片大小 */
+    height: auto;
+    margin-bottom: 20px; /* 增加圖片和影片之間的間距 */
+}
+
+.schedule {
+    width: 70%;
+    position: absolute;
+    top: 60px; /* 距离页面顶部的距离 */
+    left: 70px; /* 距离页面左侧的距离 */
+}
+
+h2 {
+    text-align: center; /* 水平居中 */
+    position: absolute;
+    top: -122px; /* 适当调整为距离页面顶部 20px */
+    left: 62%; /* 水平居中的初始点 */
+    transform: translateX(-50%); /* 使元素真正水平居中 */
+    margin: 0; /* 移除默认的 margin */
+    font-size: 36px
+}
+
+
+
+.plan-description {
+    border: 2px solid #ccc; /* 設置邊框 */
+    padding: 15px;          /* 設置內邊距 */
+    margin-top: 200px;       /* 調整上方距離 */
+    border-radius: 10px;    /* 添加圓角 */
+    background-color: #333; /* 設置背景顏色 */
+    color: white;           /* 設置文字顏色 */
+    font-size: 18px;        /* 調整文字大小 */
+    line-height: 1.5;       /* 調整行高讓文字更易讀 */
+    max-width: 20%;         /* 調整框框寬度 */
+    float: right;
+    margin-right: 10px;         /* 讓框框在頁面居中 */
+    text-align: left;       /* 讓文字靠左對齊 */
 }
 

@@ -129,10 +129,10 @@ nav ul li a.active::after {
         .post {
             border: 1px solid #ccc;
             padding: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 10px !important;
             border-radius: 10px;
             max-width: 800px; /* 確保貼文不會過寬 */
-    margin: 0 auto; /* 讓貼文置中 */
+            margin: 0 auto; /* 讓貼文置中 */
         }
         .post-header {
             display: flex;
@@ -156,22 +156,22 @@ nav ul li a.active::after {
         }
         .post-image{
             width: 100%; /* 圖片充滿貼文區域 */
-    max-width: 150px; /* 限制圖片寬度 */
-    max-height: 150px; /* 限制圖片高度 */
+    max-width: 300px; /* 限制圖片寬度 */
+    max-height: 200px; /* 限制圖片高度 */
     object-fit: cover; /* 保持圖片的比例縮放 */
     margin-right: 10px;
     border-radius: 5px;
         }
 
         .post-video {
-            width: 100%;
-            max-width: 500px; /* 與貼文寬度一致 */
+            display: block;   /* 讓影片顯示為區塊元素 */
+            margin: 0 auto;   /* 自動設置左右外邊距來居中影片 */
+            width: 100%;      /* 讓影片寬度充滿父容器 */
+            max-width: 500px; /* 限制影片的最大寬度，保持合理大小 */
             height: auto;
-            max-height: 400px;
-            object-fit: cover;
-            margin-top: 10px;
             border-radius: 5px;
         }
+        
 
 
         .post-actions {
@@ -296,9 +296,11 @@ nav ul li a.active::after {
 
 .media-container {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: center; /* 讓容器中的內容水平居中 */
+    align-items: center;     /* 讓內容垂直居中 */
+    flex-wrap: wrap;         /* 避免內容超出容器時換行 */
 }
+
 
 .media-container img {
     max-width: 100%;
@@ -318,6 +320,8 @@ nav ul li a.active::after {
     height: 100%; 
     overflow: auto;
     background-color: rgba(0,0,0,0.9); /* 背景顏色加深，帶有透明效果 */
+    justify-content: center; /* 水平居中 */
+    align-items: center; /* 垂直居中 */
 }
 
 /* 模態中的圖片和影片樣式 */
@@ -326,6 +330,9 @@ nav ul li a.active::after {
     display: block;
     max-width: 90%;
     max-height: 80%;
+    position: relative;
+    top: 40%; /* 讓圖片距離視窗上方40% */
+    transform: translateY(-50%); /* 向上移動圖片，使其垂直居中 */
 }
 
 /* 關閉按鈕樣式 */
@@ -392,4 +399,16 @@ nav ul li a.active::after {
     .username, .post-time {
         font-size: 14px; /* 調整貼文中的字體大小 */
     }
+}
+
+button {
+    background: #ff4d4d;  /* 按鈕顏色 */
+    color: #fff;          /* 按鈕文字顏色 */
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+button:hover {
+    background: #ff1a1a;  /* 滑過時的顏色 */
 }

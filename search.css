@@ -188,3 +188,15 @@ main > div {
     margin: 0 auto; /* 圖片居中 */
     display: block;
 }
+
+/* AI小幫手提示區塊的樣式 */
+.ai-helper {
+    background-color: rgba(255, 255, 255, 0.1); /* 背景顏色，可以自行調整 */
+    color: white; /* 字體顏色 */
+    font-size: 20px; /* 字體大小 */
+    text-align: center; /* 文字置中 */
+    padding: 20px; /* 內邊距 */
+    margin-top: 20px; /* 與上方搜尋框的距離 */
+    border: 1px solid white; /* 白色邊框 */
+    border-radius: 10px; /* 圓角 */
+}
