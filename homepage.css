@@ -412,3 +412,26 @@ button {
 button:hover {
     background: #ff1a1a;  /* 滑過時的顏色 */
 }
+
+.preview-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.post-media-preview {
+    max-height: 100px;
+    border-radius: 5px;
+}
+
+.remove-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: red;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+}
