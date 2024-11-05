@@ -333,65 +333,124 @@
         }
 
 
-            document.getElementById('post-image').addEventListener('change', previewPost);
-            document.getElementById('post-video').addEventListener('change', previewPost);
-
-
-    
-
-        document.querySelectorAll('.post-image').forEach(img => {
-            img.addEventListener('click', function() {
-                const modal = document.createElement('div');
-                modal.className = 'image-modal';
-                modal.innerHTML = `
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <img src="${this.src}" class="modal-image">
-                        <div class="modal-controls">
-                            <button onclick="zoomIn()">放大</button>
-                            <button onclick="zoomOut()">縮小</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-
-                modal.querySelector('.close').onclick = function() {
-                    modal.remove();
-                }
-            });
-        });
-
-        document.getElementById('post-image').addEventListener('change', function() {
-            validateFiles(this, 'image');
-        });
-        
-        document.getElementById('post-video').addEventListener('change', function() {
-            validateFiles(this, 'video');
-        });
-
-        function validateFiles(inputElement, type) {
-            const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-            const allowedVideoTypes = ['video/mp4', 'video/webm'];
-            const files = inputElement.files;
             
-            for (let file of files) {
-                if (type === 'image' && !allowedImageTypes.includes(file.type)) {
-                    alert('只允許上傳 JPG 或 PNG 圖片');
-                    inputElement.value = ''; // 清空檔案，防止不合規檔案上傳
-                    return;
-                }
-                if (type === 'video' && !allowedVideoTypes.includes(file.type)) {
-                    alert('只允許上傳 MP4 或 WebM 視頻');
-                    inputElement.value = ''; // 清空檔案
-                    return;
-                }
-                if (file.size > 5 * 1024 * 1024) { // 檢查檔案大小
-                    alert('檔案大小不可超過 5MB');
-                    inputElement.value = ''; // 清空檔案
-                    return;
-                }
-            }
+    
+        // 儲存所有選中的檔案
+let selectedFiles = [];
+
+// 處理圖片和影片的上傳預覽和選擇
+document.getElementById('post-image').addEventListener('change', function() {
+    handleFileSelection(this, 'image');
+});
+
+document.getElementById('post-video').addEventListener('change', function() {
+    handleFileSelection(this, 'video');
+});
+
+function handleFileSelection(inputElement, type) {
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const allowedVideoTypes = ['video/mp4', 'video/webm'];
+    const previewContainer = document.getElementById('preview-container');
+    const files = Array.from(inputElement.files);
+    
+    // 清空現有的預覽內容，避免重複顯示
+    previewContainer.innerHTML = '';
+
+    // 更新 selectedFiles，將新選擇的檔案添加到已選檔案列表中
+    files.forEach(file => {
+        // 檢查檔案格式和大小
+        const isValidType = (type === 'image' && allowedImageTypes.includes(file.type)) ||
+                            (type === 'video' && allowedVideoTypes.includes(file.type));
+        const isValidSize = file.size <= 5 * 1024 * 1024;
+
+        if (!isValidType) {
+            alert('只允許上傳 JPG, PNG 圖片或 MP4, WebM 視頻');
+            return;
         }
+        if (!isValidSize) {
+            alert('檔案大小不可超過 5MB');
+            return;
+        }
+
+        selectedFiles.push(file);
+    });
+
+    // 顯示有效的預覽
+    selectedFiles.forEach((file, index) => {
+        // 創建預覽容器
+        const previewWrapper = document.createElement('div');
+        previewWrapper.className = 'preview-wrapper';
+
+        // 創建預覽元素
+        const previewElement = document.createElement(file.type.startsWith('image') ? 'img' : 'video');
+        previewElement.src = URL.createObjectURL(file);
+        previewElement.className = 'post-media-preview';
+        previewElement.controls = file.type.startsWith('video');
+
+        // 添加「X」按鈕
+        const removeButton = document.createElement('div');
+        removeButton.innerHTML = 'X';
+        removeButton.className = 'remove-button';
+        removeButton.addEventListener('click', function() {
+            // 從 selectedFiles 中移除該檔案
+            selectedFiles = selectedFiles.filter((_, i) => i !== index);
+            previewWrapper.remove();  // 移除該預覽項目
+        });
+
+        // 將預覽元素和刪除按鈕添加到包裝容器
+        previewWrapper.appendChild(previewElement);
+        previewWrapper.appendChild(removeButton);
+        previewContainer.appendChild(previewWrapper);
+    });
+
+    // 清空 input 值，避免多次選擇相同檔案失敗
+    inputElement.value = '';
+}
+
+// 發佈貼文時使用 selectedFiles 中的檔案
+function createPost() {
+    const text = document.getElementById('post-text').value;
+
+    // 初始化 FormData 並添加文字內容
+    const formData = new FormData();
+    formData.append('content', text);
+
+    // 將 selectedFiles 中的檔案加入 formData
+    selectedFiles.forEach(file => {
+        if (file.type.startsWith('image')) {
+            formData.append('images', file);
+        } else if (file.type.startsWith('video')) {
+            formData.append('videos', file);
+        }
+    });
+
+    // 發送請求到後端
+    fetch('/add_post', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert("貼文發佈成功");
+            // 清空 selectedFiles 和預覽
+            selectedFiles = [];
+            document.getElementById('preview-container').innerHTML = '';
+            document.getElementById('post-text').value = '';
+            hideCreatePostModal();
+            location.reload();  // 發佈成功後重新加載頁面
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('發生錯誤，請稍後再試');
+    });
+}
+
+
+
 
 
         function createCommentHTML(comment) {
