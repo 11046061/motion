@@ -53,14 +53,14 @@ def register():
                     # 檢查電子郵件是否已存在
                     cursor.execute("SELECT COUNT(*) FROM members WHERE email = %s", (email,))
                     if cursor.fetchone()[0] > 0:
-                        flash('Email already registered, please use a different email.', 'error')
+                        flash('該電子郵件已經註冊過了，請使用不同的電子郵件', 'error')
                         return render_template('register.html')
                     
                     # 插入新會員紀錄
                     query = "INSERT INTO members (username, password, email, birthday) VALUES (%s, %s, %s, %s)"
                     cursor.execute(query, (username, hashed_password, email, birthday))
                     conn.commit()
-            flash('Registration successful! Please log in.', 'success')
+            flash('您的帳戶已經成功創建！請登入', 'success')
             return redirect(url_for('login', registered='True'))
         except mysql.connector.Error as e:
             flash(str(e), 'error')
@@ -86,8 +86,8 @@ def login():
             session['birthday'] = account[4]
             return redirect(url_for('homepage'))  # 登錄成功，重定向到主頁
         else:
-            flash('Invalid email or password')  # 更改錯誤消息，明確指出是電子郵件或密碼錯誤
-            return render_template('login.html', error='Invalid email or password')
+            flash('電子郵件或密碼錯誤')  # 更改錯誤消息，明確指出是電子郵件或密碼錯誤
+            return render_template('login.html', error='電子郵件或密碼錯誤')
     return render_template('login.html')
 
 @app.route('/homepage')
@@ -126,7 +126,21 @@ def homepage():
     connection.close()
     return render_template('homepage.html', posts=posts)
 
+
+
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
+
 #post
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def file_size_allowed(file):
+    file.seek(0, os.SEEK_END)
+    file_length = file.tell()
+    file.seek(0)  # 重置指標以便後續讀取
+    return file_length <= MAX_FILE_SIZE
+
 @app.route('/add_post', methods=['POST'])
 def add_post():
     try:
@@ -150,7 +164,7 @@ def add_post():
         if 'images' in request.files:
             images = request.files.getlist('images')
             for image in images:
-                if image and allowed_file(image.filename):
+                if image and allowed_file(image.filename) and file_size_allowed(image):
                     image_filename = secure_filename(image.filename)
                     image_path = os.path.join(UPLOAD_FOLDER, image_filename)
                     image.save(image_path)
@@ -158,12 +172,14 @@ def add_post():
                         INSERT INTO post_images (post_id, image_path)
                         VALUES (%s, %s)
                     """, (post_id, image_filename))
+                else:
+                    return jsonify({"status": "error", "message": "Image file not allowed or exceeds size limit"}), 400
 
         # 處理影片
         if 'videos' in request.files:
             videos = request.files.getlist('videos')
             for video in videos:
-                if video and allowed_file(video.filename):
+                if video and allowed_file(video.filename) and file_size_allowed(video):
                     video_filename = secure_filename(video.filename)
                     video_path = os.path.join(UPLOAD_FOLDER, video_filename)
                     video.save(video_path)
@@ -171,6 +187,8 @@ def add_post():
                         INSERT INTO post_videos (post_id, video_path)
                         VALUES (%s, %s)
                     """, (post_id, video_filename))
+                else:
+                    return jsonify({"status": "error", "message": "Video file not allowed or exceeds size limit"}), 400
 
         connection.commit()
         cursor.close()
@@ -181,76 +199,81 @@ def add_post():
         logging.error(f'Unexpected error: {e}')
         return jsonify({"status": "error", "message": str(e)}), 500
 
-def allowed_file(filename):
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 @app.route('/get_posts', methods=['GET'])
 def get_posts():
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
 
-    cursor.execute("""
-        SELECT posts.*, members.username FROM posts
-        JOIN members ON posts.members_id = members.id
-        ORDER BY posts.created_at DESC
-    """)
-    posts = cursor.fetchall()
-
-    user_id = session.get('id')  # 獲取當前用戶的ID
-
-    for post in posts:
-        # 獲取貼文的圖片
-        cursor.execute("SELECT * FROM post_images WHERE post_id = %s", (post['id'],))
-        post['images'] = [url_for('static', filename=f'uploads/{img["image_path"]}') for img in cursor.fetchall()]
-
-        # 獲取貼文的影片
-        cursor.execute("SELECT * FROM post_videos WHERE post_id = %s", (post['id'],))
-        post['videos'] = [url_for('static', filename=f'uploads/{vid["video_path"]}') for vid in cursor.fetchall()]
-
-        # 獲取貼文的評論
+        # 獲取所有貼文及其創建者的用戶名
         cursor.execute("""
-            SELECT comments.*, members.username 
-            FROM comments
-            JOIN members ON comments.members_id = members.id
-            WHERE post_id = %s
-            ORDER BY comments.created_at ASC
-        """, (post['id'],))
-        comments = cursor.fetchall()
+            SELECT posts.*, members.username FROM posts
+            JOIN members ON posts.members_id = members.id
+            ORDER BY posts.created_at DESC
+        """)
+        posts = cursor.fetchall()
 
-        # 處理每條評論
-        for comment in comments:
-            comment['deletable'] = comment['members_id'] == session.get('id')
+        user_id = session.get('id')  # 獲取當前用戶的ID
 
-            # 獲取評論的按讚數
-            cursor.execute("SELECT COUNT(*) AS likes_count FROM comment_likes WHERE comment_id = %s", (comment['id'],))
-            like_result = cursor.fetchone()
-            comment['likes'] = like_result['likes_count'] if like_result and 'likes_count' in like_result else 0
+        for post in posts:
+            # 獲取貼文的圖片
+            cursor.execute("SELECT * FROM post_images WHERE post_id = %s", (post['id'],))
+            post['images'] = [url_for('static', filename=f'uploads/{img["image_path"]}') for img in cursor.fetchall()]
 
-            # 確認當前用戶是否按讚過該評論
+            # 獲取貼文的影片
+            cursor.execute("SELECT * FROM post_videos WHERE post_id = %s", (post['id'],))
+            post['videos'] = [url_for('static', filename=f'uploads/{vid["video_path"]}') for vid in cursor.fetchall()]
+
+            # 確認當前用戶是否為貼文創建者，將此信息傳送到前端
+            post['is_owner'] = post['members_id'] == user_id
+
+            # 獲取貼文的評論
+            cursor.execute("""
+                SELECT comments.*, members.username 
+                FROM comments
+                JOIN members ON comments.members_id = members.id
+                WHERE post_id = %s
+                ORDER BY comments.created_at ASC
+            """, (post['id'],))
+            comments = cursor.fetchall()
+
+            # 處理每條評論
+            for comment in comments:
+                # 確認當前用戶是否能刪除該評論
+                comment['deletable'] = comment['members_id'] == user_id
+
+                # 獲取評論的按讚數
+                cursor.execute("SELECT COUNT(*) AS likes_count FROM comment_likes WHERE comment_id = %s", (comment['id'],))
+                like_result = cursor.fetchone()
+                comment['likes'] = like_result['likes_count'] if like_result and 'likes_count' in like_result else 0
+
+                # 確認當前用戶是否按讚過該評論
+                if user_id:
+                    cursor.execute("SELECT COUNT(*) AS liked FROM comment_likes WHERE comment_id = %s AND members_id = %s", (comment['id'], user_id))
+                    user_liked_result = cursor.fetchone()
+                    comment['user_liked'] = user_liked_result['liked'] > 0 if user_liked_result else False
+                else:
+                    comment['user_liked'] = False
+
+            post['comments'] = comments
+
+            # 確認當前用戶是否按讚過該貼文
             if user_id:
-                cursor.execute("SELECT COUNT(*) AS liked FROM comment_likes WHERE comment_id = %s AND members_id = %s", (comment['id'], user_id))
-                user_liked_result = cursor.fetchone()
-                comment['user_liked'] = user_liked_result['liked'] > 0 if user_liked_result else False
+                cursor.execute("SELECT COUNT(*) AS liked FROM likes WHERE post_id = %s AND members_id = %s", (post['id'], user_id))
+                post_liked_result = cursor.fetchone()
+                post['user_liked'] = post_liked_result['liked'] > 0 if post_liked_result else False
             else:
-                comment['user_liked'] = False
+                post['user_liked'] = False
 
-        post['comments'] = comments
+        cursor.close()
+        connection.close()
 
-        # 確認當前用戶是否按讚過該貼文
-        if user_id:
-            cursor.execute("SELECT COUNT(*) AS liked FROM likes WHERE post_id = %s AND members_id = %s", (post['id'], user_id))
-            post_liked_result = cursor.fetchone()
-            post['user_liked'] = post_liked_result['liked'] > 0 if post_liked_result else False
-        else:
-            post['user_liked'] = False
+        return jsonify({'posts': posts})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-    cursor.close()
-    connection.close()
-
-    return jsonify({'posts': posts})
 
 
 @app.route('/get_post_images/<int:post_id>')
@@ -447,18 +470,42 @@ def like_comment():
 
 @app.route('/delete_post/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
+    user_id = session.get('id')  # 獲取當前用戶的 ID
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
     try:
-        connection = get_db_connection()
-        cursor = connection.cursor()
-        cursor.execute("DELETE FROM likes WHERE post_id = %s", (post_id,))
-        cursor.execute("DELETE FROM comments WHERE post_id = %s", (post_id,))
-        cursor.execute("DELETE FROM posts WHERE id = %s", (post_id,))
-        connection.commit()
+        # 檢查貼文是否屬於當前用戶
+        cursor.execute("SELECT * FROM posts WHERE id = %s AND members_id = %s", (post_id, user_id))
+        post = cursor.fetchone()
+
+        if post:
+            # 先刪除與貼文相關的按讚記錄
+            cursor.execute("DELETE FROM likes WHERE post_id = %s", (post_id,))
+            
+            # 再刪除與貼文相關的留言
+            cursor.execute("DELETE FROM comments WHERE post_id = %s", (post_id,))
+            
+            # 最後刪除貼文本身
+            cursor.execute("DELETE FROM posts WHERE id = %s", (post_id,))
+            
+            connection.commit()
+            message = {'status': 'success', 'message': '貼文已成功刪除'}
+        else:
+            message = {'status': 'error', 'message': '無法刪除他人的貼文'}
+
+    except Exception as e:
+        connection.rollback()  # 發生錯誤時回滾操作
+        message = {'status': 'error', 'message': f'刪除貼文時發生錯誤: {str(e)}'}
+
+    finally:
         cursor.close()
         connection.close()
-        return jsonify({"status": "success"})
-    except mysql.connector.Error as err:
-        return jsonify({"status": "error", "message": str(err)}), 500
+
+    return jsonify(message)
+
+
 
 def format_time(time):
     now = datetime.datetime.now()
@@ -526,7 +573,8 @@ def profile():
 
     return render_template('profile.html', **user_info)
 
-#刪除會員資料
+
+
 @app.route('/delete_member', methods=['POST'])
 def delete_member():
     user_id = session.get('id')
@@ -534,21 +582,46 @@ def delete_member():
         connection = get_db_connection()
         cursor = connection.cursor()
 
-        # 先刪除 likes 表中的相關記錄
-        cursor.execute('DELETE FROM likes WHERE members_id = %s', (user_id,))
+        try:
+            # 先刪除 likes 表中的相關記錄，包括該用戶的點贊
+            cursor.execute('DELETE FROM likes WHERE post_id IN (SELECT id FROM posts WHERE members_id = %s) OR members_id = %s', (user_id, user_id))
 
-        # 先刪除 user_fitness_data 表中的相關記錄
-        cursor.execute('DELETE FROM user_fitness_data WHERE user_id = %s', (user_id,))
+            # 刪除 comments 表中的相關記錄
+            cursor.execute('DELETE FROM comments WHERE members_id = %s', (user_id,))
 
-        # 再刪除會員本身
-        cursor.execute('DELETE FROM members WHERE id = %s', (user_id,))
-        connection.commit()
+            # 刪除 posts 表中的相關記錄
+            cursor.execute('DELETE FROM posts WHERE members_id = %s', (user_id,))
 
-        cursor.close()
-        connection.close()
-        session.clear()  # 清除登入狀態
-        return redirect(url_for('login'))  # 刪除成功後回到首頁
+            # 刪除 plans 表中的相關記錄
+            cursor.execute('DELETE FROM plans WHERE user_id = %s', (user_id,))
+
+            # 刪除 user_fitness_data 表中的相關記錄
+            cursor.execute('DELETE FROM user_fitness_data WHERE user_id = %s', (user_id,))
+
+            # 刪除 questions 表中的相關記錄
+            cursor.execute('DELETE FROM questions WHERE member_id = %s', (user_id,))
+
+            # 最後刪除會員本身
+            cursor.execute('DELETE FROM members WHERE id = %s', (user_id,))
+            connection.commit()
+
+            # 清除 session，登出使用者
+            session.clear()
+
+            return redirect(url_for('login'))  # 刪除成功後重定向到登入頁面
+
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+            connection.rollback()  # 如果有錯誤，回滾變更
+            flash('刪除帳戶時出現錯誤，請稍後再試', 'error')  # 顯示錯誤提示
+            return redirect(url_for('profile'))
+
+        finally:
+            cursor.close()
+            connection.close()
+
     return redirect(url_for('profile'))
+
 
 
 
@@ -569,7 +642,7 @@ def get_plan_status():
     cursor.execute('SELECT completed FROM plans WHERE user_id = %s AND date = %s', (user_id, today_date))
     plan_status = cursor.fetchone()
     cursor.close()
-
+    
     if plan_status and plan_status['completed']:
         return jsonify({'completed': True})
     else:
@@ -643,20 +716,24 @@ def update_profile():
 
         if result:
             # 更新當天體重
-            cursor.execute('UPDATE user_fitness_data SET weight_today = %s WHERE user_id = %s AND date = CURDATE()', 
-                           (weight_today, user_id))
+            cursor.execute('UPDATE user_fitness_data SET weight_today = %s, height = %s WHERE user_id = %s AND date = CURDATE()', 
+                           (weight_today, height, user_id))
         else:
             # 插入新資料
             cursor.execute('INSERT INTO user_fitness_data (user_id, height, weight_today, date) VALUES (%s, %s, %s, CURDATE())',
                            (user_id, height, weight_today))
-        
+
         connection.commit()
         cursor.close()
-
-        return jsonify({'status': 'success'})
+        print("更新成功，回傳 success")  # 確認伺服器處理成功
+        return jsonify({'success': True}), 200, {'ContentType': 'application/json'}
     except Exception as e:
+        # 捕捉任何異常，回傳錯誤訊息
         print(f"Error updating profile data: {str(e)}")
         return jsonify({'error': 'Failed to update profile data'}), 500
+
+
+
 
 @app.route('/get-weight-history', methods=['GET'])
 def get_weight_history():
@@ -670,16 +747,25 @@ def get_weight_history():
         
         # 取得用戶所有的體重歷史紀錄
         cursor.execute('SELECT date, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date ASC', (user_id,))
-        results = cursor.fetchall()
+        data = cursor.fetchall()
         
-        dates = [row[0].strftime('%Y-%m-%d') for row in results]
-        weights = [row[1] for row in results]
+        if not data:
+            return jsonify({'error': 'No data found'}), 404  # 確保回傳適當的錯誤訊息
 
-        cursor.close()
+        # 打印出資料庫返回的資料
+        print(f"Weight history data from DB: {data}")
+
+        dates = [row[0].strftime('%Y-%m-%d') for row in data]
+        weights = [row[1] for row in data]
+
+        # 打印出將要回傳的格式
+        print(f"Returning dates: {dates}, weights: {weights}")
         return jsonify({'dates': dates, 'weights': weights})
+
     except Exception as e:
-        print(f"Error getting weight history: {str(e)}")
-        return jsonify({'error': 'Failed to get weight history'}), 500
+        print(f"Error fetching weight history: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/logout', methods=['POST'])
