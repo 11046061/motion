@@ -435,3 +435,29 @@ button:hover {
     cursor: pointer;
     font-size: 12px;
 }
+.sidebar {
+    position: fixed;
+    top: 100px; /* 調整這裡來設定廣告的頂部間距 */
+    width: 120px; /* 廣告區域的寬度 */
+    height: 80vh; /* 廣告區域的高度 */
+    background-color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+}
+
+.sidebar.left {
+    left: 20px; /* 左側廣告的距離 */
+}
+
+.sidebar.right {
+    right: 20px; /* 右側廣告的距離 */
+}
+
+.ad-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+    cursor: pointer;
+}
