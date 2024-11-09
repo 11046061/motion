@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap" rel="stylesheet">
 </head>
 <body>
+    
     <header>
         <div class="logo">
             <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="Logo 1">
@@ -25,13 +26,36 @@
             </ul>
         </nav>
     </header>
+   
+    <!-- 主要內容區域 -->
     <main>
-        
         <div id="posts-container">
-            <!-- 這裡會顯示貼文 -->
+            <!-- 貼文內容會顯示在這裡 -->
         </div>
     </main>
+
+    <!-- 左側廣告區域 -->
+    <div class="sidebar left">
+        <a href="https://24h.pchome.com.tw/prod/DEBYLG-A900GPLSF" target="_blank">
+            <img src="{{ url_for('static', filename='images/健身啞鈴廣告.jpg') }}" alt="左側廣告" class="ad-image">
+        </a>            
+
+
+    <!-- 健身新手規劃按鈕 -->
+    <a href="https://www.womenshealthmag.com/tw/fitness/work-outs/g40829424/workout-plan/" target="_blank" class="certified-link">健身新手規劃</a>
+    </div>
+
+    <!-- 右側廣告區域 -->
+    <div class="sidebar right">
+        <a href="https://m.momoshop.com.tw/goods.momo?i_code=12221717&mdiv=searchEngine&oid=1_1&kw=%E7%91%9C%E7%8F%88%E5%A2%8A" target="_blank">
+            <img src="{{ url_for('static', filename='images/健身瑜珈墊廣告.png') }}" alt="右側廣告" class="ad-image">
+        </a>            
     
+
+    <!-- 專業健身菜單按鈕 -->
+    <a href="https://tw.sports.yahoo.com/news/%E9%87%91%E5%AD%97%E5%A1%94%E8%A8%93%E7%B7%B4%E8%A9%B2%E6%80%8E%E9%BA%BC%E5%81%9A%EF%BC%9F%E6%AD%A3%E9%87%91%E5%AD%97%E5%A1%94%E3%80%81%E5%80%92%E9%87%91%E5%AD%97%E5%A1%94%E3%80%81%E5%85%A8%E9%87%91%E5%AD%97%E5%A1%94%E5%93%AA%E4%B8%80%E5%80%8B%E8%BC%83%E9%81%A9%E5%90%88%E6%88%91%EF%BC%9F-131518276.html" target="_blank" class="certified-link">金字塔訓練法</a>
+</div>    
+</body>
     
     <div class="create-post" onclick="showCreatePostModal()">+</div>
 <!--新增貼文模組中的視窗 -->
@@ -52,25 +76,7 @@
     </div>
 </div>
 
-    <!-- 左側廣告區域 -->
-        <div class="sidebar left">
-            <a href="https://24h.pchome.com.tw/region/DEBY?srsltid=AfmBOoqBRopIPcyZ5Oi0ud2IqNcsmvUomlPPI0yjL77iuk4T3HqvDvs_" target="_blank">
-                <img src="廣告圖片連結" alt="左側廣告" class="ad-image">
-            </a>
-        </div>
-
-        <main>
-            <div id="posts-container">
-                <!-- 貼文內容會顯示在這裡 -->
-            </div>
-        </main>
-
-        <!-- 右側廣告區域 -->
-        <div class="sidebar right">
-            <a href="https://m.momoshop.com.tw/category.momo?cn=1204800002&cid=dir&oid=rela" target="_blank">
-                <img src="廣告圖片連結" alt="右側廣告" class="ad-image">
-            </a>
-        </div>  
+    
     
     <script>
         
