@@ -31,6 +31,14 @@ header {
     margin: 0 auto;
 }
 
+.container {
+    width: 1200px; /* 固定容器寬度，根據需求調整 */
+    height: 100vh; /* 使容器高度佔滿視窗高度 */
+    margin: 0 auto; /* 居中對齊 */
+    position: relative;
+    overflow: hidden; /* 防止內容溢出 */
+}
+
 .logo img {
     height: 50px;
 }
@@ -437,14 +445,15 @@ button:hover {
 }
 .sidebar {
     position: fixed;
-    top: 100px; /* 調整這裡來設定廣告的頂部間距 */
-    width: 120px; /* 廣告區域的寬度 */
-    height: 80vh; /* 廣告區域的高度 */
-    background-color: #333;
+    top: 250px; /* 調整廣告區域的頂部間距 */
+    width: 220px; /* 調整為較小的寬度 */
+    height: auto; /* 高度自適應圖片大小 */
+    background-color: #b0b0b0;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
     border-radius: 10px;
+    padding: 15px; /* 添加內邊距，讓圖片不緊貼邊界 */
 }
 
 .sidebar.left {
@@ -456,8 +465,26 @@ button:hover {
 }
 
 .ad-image {
-    max-width: 100%;
-    height: auto;
+    max-width: 100%; /* 確保圖片寬度填滿廣告區域 */
+    height: auto; /* 保持圖片原始比例 */
     border-radius: 5px;
     cursor: pointer;
 }
+.certified-link {
+    width: 180px; /* 按鈕寬度 */
+    margin-top: 10px; /* 與廣告圖片的間距 */
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: #fff;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.certified-link:hover {
+    background-color: #0056b3;
+}
+
