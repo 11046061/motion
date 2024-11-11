@@ -481,6 +481,9 @@ def delete_post(post_id):
         post = cursor.fetchone()
 
         if post:
+            # 先刪除 favorites 中與該 post_id 相關的記錄
+            cursor.execute("DELETE FROM favorites WHERE post_id = %s", (post_id,))
+            
             # 先刪除與貼文相關的按讚記錄
             cursor.execute("DELETE FROM likes WHERE post_id = %s", (post_id,))
             
@@ -505,7 +508,59 @@ def delete_post(post_id):
 
     return jsonify(message)
 
+@app.route('/toggle_favorite', methods=['POST'])
+def toggle_favorite():
+    user_id = session.get('id')
+    post_id = request.json.get('post_id')
+    
+    if not user_id or not post_id:
+        return jsonify({"status": "error", "message": "缺少用戶或貼文資訊"}), 400
 
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='figs0630',
+        database='healthy'
+    )
+    cursor = conn.cursor()
+
+    # 檢查是否已經珍藏該貼文
+    cursor.execute("SELECT id FROM favorites WHERE members_id = %s AND post_id = %s", (user_id, post_id))
+
+    result = cursor.fetchone()
+
+    if result:
+        cursor.execute("DELETE FROM favorites WHERE id = %s", (result[0],))
+        conn.commit()
+        response = {"status": "success", "action": "unfavorited"}
+    else:
+        cursor.execute("INSERT INTO favorites (members_id, post_id) VALUES (%s, %s)", (user_id, post_id))
+        conn.commit()
+        response = {"status": "success", "action": "favorited"}
+
+    cursor.close()
+    conn.close()
+    return jsonify(response)
+
+@app.route('/get_favorites', methods=['GET'])
+def get_favorites():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({"status": "error", "message": "用戶未登入"}), 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT posts.* FROM favorites
+        JOIN posts ON favorites.post_id = posts.id
+        WHERE favorites.members_id = %s
+    """, (user_id,))
+    favorites = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return jsonify({"status": "success", "favorites": favorites})
 
 def format_time(time):
     now = datetime.datetime.now()
@@ -600,6 +655,9 @@ def delete_member():
 
             # 刪除 questions 表中的相關記錄
             cursor.execute('DELETE FROM questions WHERE member_id = %s', (user_id,))
+
+            # 刪除 favorites 表中的相關記錄
+            cursor.execute('DELETE FROM favorites WHERE members_id = %s', (user_id,))
 
             # 最後刪除會員本身
             cursor.execute('DELETE FROM members WHERE id = %s', (user_id,))
