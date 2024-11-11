@@ -47,6 +47,7 @@
 
     <!-- 右側廣告區域 -->
     <div class="sidebar right">
+        <button onclick="showFavorites()">查看珍藏的貼文</button>
         <a href="https://m.momoshop.com.tw/goods.momo?i_code=12221717&mdiv=searchEngine&oid=1_1&kw=%E7%91%9C%E7%8F%88%E5%A2%8A" target="_blank">
             <img src="{{ url_for('static', filename='images/健身瑜珈墊廣告.png') }}" alt="右側廣告" class="ad-image">
         </a>            
@@ -191,7 +192,7 @@
         
 
         let likeIcon = post.user_liked ? "{{ url_for('static', filename='images/like1.png') }}" : "{{ url_for('static', filename='images/like.png') }}";
-
+        let favoriteIcon = post.user_favorited ? "{{ url_for('static', filename='images/collection1.png') }}" : "{{ url_for('static', filename='images/collection.png') }}";
         
 
         return `
@@ -205,17 +206,18 @@
             <div class="post-content">
                 <p>${post.content}</p>
                 <div class="media-container" style="display: flex;">
-                    ${content}
+                    ${content} <!-- 貼文媒體內容 -->
                 </div>
             </div>
             <div class="post-actions">
                 <img src="${likeIcon}" alt="Like" class="action-icon like-icon" onclick="toggleLike(${post.id})">
                 <div class="like-count">按讚: ${post.likes}</div>
+                <img src="${favoriteIcon}" alt="Favorite" class="action-icon favorite-icon" onclick="toggleFavorite(${post.id})">
                 <img src="/static/images/mess.png" alt="Comment" class="action-icon comment-icon" onclick="showCommentSection(${post.id})">
                 <div class="comment-count">留言: ${post.comments.length}</div>
             </div>
             <div class="comment-section" id="commentSection_${post.id}">
-                ${commentsHTML}
+                ${commentsHTML} <!-- 留言列表 -->
                 <div class="comment-input-container">
                     <textarea id="commentInput_${post.id}" placeholder="輸入留言..."></textarea>
                     <button class="comment-button" onclick="addComment(${post.id})">傳送</button>
@@ -760,6 +762,62 @@ function createPost() {
                 }
             });
         }
+
+        function toggleFavorite(postId) {
+            fetch('/toggle_favorite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ post_id: postId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 切換圖示，根據是否已珍藏改變圖示
+                    const favoriteIcon = document.querySelector(`#post-${postId} .favorite-icon`);
+                    favoriteIcon.src = data.action === 'favorited' 
+                        ? "{{ url_for('static', filename='images/collection1.png') }}" 
+                        : "{{ url_for('static', filename='images/collection.png') }}";
+                } else {
+                    alert('操作失敗，請稍後再試');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function showFavorites() {
+            fetch('/get_favorites')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);  // 檢查返回的 JSON 資料
+
+                    if (data.status === 'success') {
+                        const postsContainer = document.getElementById('posts-container');
+                        postsContainer.innerHTML = '';  // 清空貼文區域
+
+                        // 檢查 favorites 陣列是否有內容
+                        if (data.favorites.length === 0) {
+                            postsContainer.innerHTML = '<p>目前沒有珍藏的貼文。</p>';
+                            return;
+                        }
+
+                        // 生成每個珍藏貼文的 HTML
+                        data.favorites.forEach(post => {
+                            const postHTML = createPostHTML(post);  // 使用現有函數生成貼文HTML
+                            postsContainer.innerHTML += postHTML;
+                        });
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+
+
+
+
 
         function showCreatePostModal() {
             document.getElementById('createPostModal').style.display = 'flex';
