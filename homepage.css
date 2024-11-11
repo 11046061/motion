@@ -31,6 +31,8 @@ header {
     margin: 0 auto;
 }
 
+
+
 .container {
     width: 1200px; /* 固定容器寬度，根據需求調整 */
     height: 100vh; /* 使容器高度佔滿視窗高度 */
@@ -488,3 +490,9 @@ button:hover {
     background-color: #0056b3;
 }
 
+.favorite-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    cursor: pointer;
+}
