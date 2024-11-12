@@ -7,6 +7,7 @@ import logging
 import datetime
 import openai
 import openapi
+import urllib.parse
 
 app = Flask(__name__, static_folder='static')
 app.secret_key = 'your_secret_key'  # 保護密碼
@@ -542,6 +543,9 @@ def toggle_favorite():
     conn.close()
     return jsonify(response)
 
+from flask import url_for
+
+
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():
     user_id = session.get('id')
@@ -552,15 +556,38 @@ def get_favorites():
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT posts.* FROM favorites
+        SELECT posts.*, members.username,
+               (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) AS like_count,
+               (SELECT JSON_ARRAYAGG(image_path) FROM post_images WHERE post_images.post_id = posts.id) AS images,
+               (SELECT JSON_ARRAYAGG(video_path) FROM post_videos WHERE post_videos.post_id = posts.id) AS videos
+        FROM favorites
         JOIN posts ON favorites.post_id = posts.id
+        JOIN members ON posts.members_id = members.id
         WHERE favorites.members_id = %s
     """, (user_id,))
+
     favorites = cursor.fetchall()
+
+    # 構建完整的 URL 路徑並進行編碼
+    for post in favorites:
+        if post['images']:
+            post['images'] = [url_for('static', filename=urllib.parse.quote(image)) for image in post['images']]
+        else:
+            post['images'] = []
+
+        if post['videos']:
+            post['videos'] = [url_for('static', filename=urllib.parse.quote(video)) for video in post['videos']]
+        else:
+            post['videos'] = []
 
     cursor.close()
     conn.close()
+
     return jsonify({"status": "success", "favorites": favorites})
+
+
+
+
 
 def format_time(time):
     now = datetime.datetime.now()
