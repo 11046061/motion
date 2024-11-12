@@ -122,110 +122,104 @@
         
 
         function createPostHTML(post) {
-        let content = '';
-        const images = post.images || [];
-        const videos = post.videos || [];
-        const maxImages = 3;
+            let content = '';
+            const images = Array.isArray(post.images) ? post.images : [];
+            const videos = Array.isArray(post.videos) ? post.videos : [];
+            const maxImages = 3;
 
-        images.slice(0, maxImages).forEach((image, index) => {
-            content += `<div class="image-wrapper" style="flex: 1;">
-                            <img src="${image}" class="post-image" data-post-id="${post.id}" data-index="${index}" onclick="openImageModal(${post.id}, ${index})">
-                        </div>`;
-        });
-            
-        // 顯示多張圖片時的 "+更多" 圖示
-        if (images.length > maxImages) {
-            const remaining = images.length - maxImages;
-            content += `<div class="image-wrapper" style="flex: 1; position: relative;">
-                            <img src="${images[maxImages]}" class="post-image" onclick="openImageModal(${post.id}, ${maxImages - 1})">
-                            <div class="overlay">+${remaining}</div>
-                        </div>`;
-        }
+            // 顯示圖片
+            images.slice(0, maxImages).forEach((image, index) => {
+                content += `<div class="image-wrapper" style="flex: 1;">
+                                <img src="${image}" class="post-image" data-post-id="${post.id}" data-index="${index}" onclick="openImageModal(${post.id}, ${index})">
+                            </div>`;
+            });
 
-        // 顯示影片
-        const maxVideos = 3;
-        videos.slice(0, maxVideos).forEach((video, index) => {
-            content += `<div class="video-wrapper" style="flex: 1;">
-                            <video src="${video}" class="post-video" controls onclick="openVideoModal(${post.id}, ${index})"></video>
-                        </div>`;
-        });
+            // 顯示 "+更多" 圖示
+            if (images.length > maxImages) {
+                const remaining = images.length - maxImages;
+                content += `<div class="image-wrapper" style="flex: 1; position: relative;">
+                                <img src="${images[maxImages]}" class="post-image" onclick="openImageModal(${post.id}, ${maxImages - 1})">
+                                <div class="overlay">+${remaining}</div>
+                            </div>`;
+            }
 
-        if (videos.length > maxVideos) {
-            const remaining = videos.length - maxVideos;
-            content += `<div class="video-wrapper" style="flex: 1; position: relative;">
-                            <video src="${videos[maxVideos]}" class="post-video" controls onclick="openVideoModal(${post.id}, ${maxVideos - 1})"></video>
-                            <div class="overlay">+${remaining}</div>
-                        </div>`;
-        }
+            // 顯示影片
+            const maxVideos = 3;
+            videos.slice(0, maxVideos).forEach((video, index) => {
+                content += `<div class="video-wrapper" style="flex: 1;">
+                                <video src="${video}" class="post-video" controls onclick="openVideoModal(${post.id}, ${index})"></video>
+                            </div>`;
+            });
 
-        let commentsHTML = '';
-        let deleteButton = '';
-        
-        if (post.is_owner) {  // 判斷當前用戶是否是貼文擁有者
-            deleteButton = `<button onclick="deletePost(${post.id})">刪除</button>`;
-        }
-        if (post.comments && post.comments.length > 0) {
-            post.comments.forEach(comment => {
-                commentsHTML += `
-                    <div class="comment" id="comment-${comment.id}">
-                        <p><strong>${comment.username}:</strong> ${comment.content}</p>
-                        <span class="comment-time">${formatTime(new Date(comment.created_at))}</span>
-                        <div class="comment-actions">
-                            <img src="${comment.user_liked ? "{{ url_for('static', filename='images/like1.png') }}" : "{{ url_for('static', filename='images/like.png') }}" }" alt="Like" class="action-icon like-icon" onclick="likeComment(${comment.id})">
-                            <span class="comment-like-count">按讚: ${comment.likes}</span>
-                            <img src="{{ url_for('static', filename='images/mess.png') }}" alt="Reply" class="action-icon reply-icon" onclick="showReplyBox(${comment.id})">
-                            ${comment.deletable ? `<button onclick="deleteComment(${comment.id})">刪除</button>` : ''}
-                        </div>
-                        <div class="reply-section" id="replySection_${comment.id}" style="display:none;">
-                            <textarea id="replyInput_${comment.id}" placeholder="輸入回覆..."></textarea>
-                            <button class="reply-button" onclick="addReply(${comment.id})">傳送</button>
-                        </div>
-                        <div class="replies-container" id="repliesContainer_${comment.id}">
-                            <!-- 回覆將顯示在這裡 -->
+            if (videos.length > maxVideos) {
+                const remaining = videos.length - maxVideos;
+                content += `<div class="video-wrapper" style="flex: 1; position: relative;">
+                                <video src="${videos[maxVideos]}" class="post-video" controls onclick="openVideoModal(${post.id}, ${maxVideos - 1})"></video>
+                                <div class="overlay">+${remaining}</div>
+                            </div>`;
+            }
+
+            // 顯示留言
+            let commentsHTML = '';
+            const comments = Array.isArray(post.comments) ? post.comments : (post.comments ? JSON.parse(post.comments) : []);
+            if (comments.length > 0) {
+                comments.forEach(comment => {
+                    commentsHTML += `
+                        <div class="comment" id="comment-${comment.id}">
+                            <p><strong>${comment.username}:</strong> ${comment.content}</p>
+                            <span class="comment-time">${formatTime(new Date(comment.created_at))}</span>
+                            <div class="comment-actions">
+                                <img src="${comment.user_liked ? "/static/images/like1.png" : "/static/images/like.png"}" alt="Like" class="action-icon like-icon" onclick="likeComment(${comment.id})">
+                                <span class="comment-like-count">按讚: ${comment.likes}</span>
+                                <img src="/static/images/mess.png" alt="Reply" class="action-icon reply-icon" onclick="showReplyBox(${comment.id})">
+                                ${comment.deletable ? `<button onclick="deleteComment(${comment.id})">刪除</button>` : ''}
+                            </div>
+                            <div class="reply-section" id="replySection_${comment.id}" style="display:none;">
+                                <textarea id="replyInput_${comment.id}" placeholder="輸入回覆..."></textarea>
+                                <button class="reply-button" onclick="addReply(${comment.id})">傳送</button>
+                            </div>
+                        </div>`;
+                });
+            }
+
+            // 按讚與珍藏圖示
+            let likeIcon = post.user_liked ? "/static/images/like1.png" : "/static/images/like.png";
+            let favoriteIcon = post.user_favorited ? "/static/images/collection1.png" : "/static/images/collection.png";
+
+            // 最終HTML結構
+            return `
+                <div class="post" id="post-${post.id}">
+                    <div class="post-header">
+                        <img src="/static/images/avatar.png" alt="Avatar" class="avatar">
+                        <div class="username">${post.username}</div>
+                        <div class="post-time">${formatTime(new Date(post.created_at))}</div>
+                        ${post.is_owner ? `<button onclick="deletePost(${post.id})">刪除</button>` : ''}
+                    </div>
+                    <div class="post-content">
+                        <p>${post.content}</p>
+                        <div class="media-container" style="display: flex;">
+                            ${content}
                         </div>
                     </div>
-                `;
-            });
+                    <div class="post-actions">
+                        <img src="${likeIcon}" alt="Like" class="action-icon like-icon" onclick="toggleLike(${post.id})">
+                        <div class="like-count">按讚: ${post.likes || 0}</div>
+                        <img src="${favoriteIcon}" alt="Favorite" class="action-icon favorite-icon" onclick="toggleFavorite(${post.id})">
+                        <img src="/static/images/mess.png" alt="Comment" class="action-icon comment-icon" onclick="showCommentSection(${post.id})">
+                        <div class="comment-count">留言: ${comments.length}</div>
+                    </div>
+                    <div class="comment-section" id="commentSection_${post.id}">
+                        ${commentsHTML}
+                        <div class="comment-input-container">
+                            <textarea id="commentInput_${post.id}" placeholder="輸入留言..."></textarea>
+                            <button class="comment-button" onclick="addComment(${post.id})">傳送</button>
+                        </div>
+                    </div>
+                </div>`;
         }
 
-        // 判斷是否按讚，顯示不同的按讚圖示
-        
 
-        let likeIcon = post.user_liked ? "{{ url_for('static', filename='images/like1.png') }}" : "{{ url_for('static', filename='images/like.png') }}";
-        let favoriteIcon = post.user_favorited ? "{{ url_for('static', filename='images/collection1.png') }}" : "{{ url_for('static', filename='images/collection.png') }}";
-        
 
-        return `
-        <div class="post" id="post-${post.id}">
-            <div class="post-header">
-                <img src="/static/images/avatar.png" alt="Avatar" class="avatar">
-                <div class="username">${post.username}</div>
-                <div class="post-time">${formatTime(new Date(post.created_at))}</div>
-                ${deleteButton}  <!-- 只有擁有者能看到刪除按鈕 -->
-            </div>
-            <div class="post-content">
-                <p>${post.content}</p>
-                <div class="media-container" style="display: flex;">
-                    ${content} <!-- 貼文媒體內容 -->
-                </div>
-            </div>
-            <div class="post-actions">
-                <img src="${likeIcon}" alt="Like" class="action-icon like-icon" onclick="toggleLike(${post.id})">
-                <div class="like-count">按讚: ${post.likes}</div>
-                <img src="${favoriteIcon}" alt="Favorite" class="action-icon favorite-icon" onclick="toggleFavorite(${post.id})">
-                <img src="/static/images/mess.png" alt="Comment" class="action-icon comment-icon" onclick="showCommentSection(${post.id})">
-                <div class="comment-count">留言: ${post.comments.length}</div>
-            </div>
-            <div class="comment-section" id="commentSection_${post.id}">
-                ${commentsHTML} <!-- 留言列表 -->
-                <div class="comment-input-container">
-                    <textarea id="commentInput_${post.id}" placeholder="輸入留言..."></textarea>
-                    <button class="comment-button" onclick="addComment(${post.id})">傳送</button>
-                </div>
-            </div>
-        </div>
-    `;
-        }
 
 
         function openImageModal(postId, index) {
