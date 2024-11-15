@@ -123,11 +123,11 @@
 
         function createPostHTML(post) {
             let content = '';
-            const images = Array.isArray(post.images) ? post.images : [];
-            const videos = Array.isArray(post.videos) ? post.videos : [];
+            const images = Array.isArray(post.images) ? post.images : JSON.parse(post.images || "[]");
+            const videos = Array.isArray(post.videos) ? post.videos : JSON.parse(post.videos || "[]");
             const maxImages = 3;
 
-            // 顯示圖片
+           // 顯示圖片
             images.slice(0, maxImages).forEach((image, index) => {
                 content += `<div class="image-wrapper" style="flex: 1;">
                                 <img src="${image}" class="post-image" data-post-id="${post.id}" data-index="${index}" onclick="openImageModal(${post.id}, ${index})">
@@ -150,7 +150,7 @@
                                 <video src="${video}" class="post-video" controls onclick="openVideoModal(${post.id}, ${index})"></video>
                             </div>`;
             });
-
+            
             if (videos.length > maxVideos) {
                 const remaining = videos.length - maxVideos;
                 content += `<div class="video-wrapper" style="flex: 1; position: relative;">
@@ -221,17 +221,34 @@
 
 
 
+        // 假設從後端獲取收藏貼文時儲存 posts 資料
+        let posts = [];
+
+        function fetchFavorites() {
+            fetch('/get_favorites')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Fetched Favorites Data:", data); // 除錯用
+                    if (data.status === "success") {
+                        // 現有邏輯
+                    }
+                });
+        }
+
+
+        let currentIndex; // 全域變數，用於追蹤當前的圖片索引
+        let images = []; // 全域變數，用於存儲當前帖子圖片的列表
 
         function openImageModal(postId, index) {
-            // 找到所有帖子，然後找到對應的帖子
+            // 找到對應的帖子
             const post = posts.find(p => p.id === postId);
             if (!post) {
                 console.error("Post not found");
                 return;
             }
 
-            const images = post.images;
-            let currentIndex = index;
+            images = post.images; // 設置全域變數 images
+            currentIndex = index; // 設置初始索引
 
             // 創建模態視窗
             const modal = document.createElement('div');
@@ -239,7 +256,7 @@
             modal.innerHTML = `
                 <div class="modal-content">
                     <button class="modal-close" onclick="closeImageModal()">×</button>
-                    <img src="${images[currentIndex] -1}" class="modal-image" id="modal-image">
+                    <img src="${images[currentIndex]}" class="modal-image" id="modal-image">
                     <div class="modal-controls">
                         <button onclick="prevImage()">‹</button>
                         <button onclick="nextImage()">›</button>
@@ -247,7 +264,7 @@
                 </div>
             `;
 
-            document.body.appendChild(modal);
+            document.body.appendChild(modal); // 將模態視窗添加到頁面中
 
             // 控制模態視窗的顯示與關閉
             window.closeImageModal = function() {

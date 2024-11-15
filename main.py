@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash,jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash,jsonify, send_from_directory
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -8,6 +8,8 @@ import datetime
 import openai
 import openapi
 import urllib.parse
+import json
+
 
 app = Flask(__name__, static_folder='static')
 app.secret_key = 'your_secret_key'  # 保護密碼
@@ -543,9 +545,6 @@ def toggle_favorite():
     conn.close()
     return jsonify(response)
 
-from flask import url_for
-
-
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():
     user_id = session.get('id')
@@ -559,7 +558,8 @@ def get_favorites():
         SELECT posts.*, members.username,
                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) AS like_count,
                (SELECT JSON_ARRAYAGG(image_path) FROM post_images WHERE post_images.post_id = posts.id) AS images,
-               (SELECT JSON_ARRAYAGG(video_path) FROM post_videos WHERE post_videos.post_id = posts.id) AS videos
+               (SELECT JSON_ARRAYAGG(video_path) FROM post_videos WHERE post_videos.post_id = posts.id) AS videos,
+               (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
         FROM favorites
         JOIN posts ON favorites.post_id = posts.id
         JOIN members ON posts.members_id = members.id
@@ -568,17 +568,34 @@ def get_favorites():
 
     favorites = cursor.fetchall()
 
-    # 構建完整的 URL 路徑並進行編碼
     for post in favorites:
-        if post['images']:
-            post['images'] = [url_for('static', filename=urllib.parse.quote(image)) for image in post['images']]
+    # 確保 `like_count` 和 `comment_count` 都有值
+        post['like_count'] = post.get('like_count', 0)
+        post['comment_count'] = post.get('comment_count', 0)
+        
+        # 確保圖片路徑的正確性
+        if isinstance(post['images'], list):  # 確認 images 已經是列表
+            post['images'] = [generate_image_url(image) for image in post['images']]
+        elif post['images']:
+            # 如果是字串，解析成列表後使用
+            post['images'] = [generate_image_url(image) for image in json.loads(post['images'])]
         else:
             post['images'] = []
 
-        if post['videos']:
-            post['videos'] = [url_for('static', filename=urllib.parse.quote(video)) for video in post['videos']]
+        # 類似的處理方式用於 videos
+        if isinstance(post['videos'], list):
+            post['videos'] = [generate_image_url(video) for video in post['videos']]
+        elif post['videos']:
+            post['videos'] = [generate_image_url(video) for video in json.loads(post['videos'])]
         else:
             post['videos'] = []
+
+        # 確保 `comments` 欄位存在，避免 KeyError
+        post['comments'] = json.loads(post.get('comments', '[]'))
+
+        
+
+
 
     cursor.close()
     conn.close()
@@ -587,7 +604,14 @@ def get_favorites():
 
 
 
+def generate_image_url(image):
+    if not image.startswith('/static/images/'):
+        return url_for('static', filename=f'images/{urllib.parse.quote(image)}')
+    return image
 
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory('uploads', filename)
 
 def format_time(time):
     now = datetime.datetime.now()
