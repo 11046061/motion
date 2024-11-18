@@ -127,7 +127,7 @@
             const videos = Array.isArray(post.videos) ? post.videos : JSON.parse(post.videos || "[]");
             const maxImages = 3;
 
-           // 顯示圖片
+            // 顯示圖片
             images.slice(0, maxImages).forEach((image, index) => {
                 content += `<div class="image-wrapper" style="flex: 1;">
                                 <img src="${image}" class="post-image" data-post-id="${post.id}" data-index="${index}" onclick="openImageModal(${post.id}, ${index})">
@@ -150,7 +150,7 @@
                                 <video src="${video}" class="post-video" controls onclick="openVideoModal(${post.id}, ${index})"></video>
                             </div>`;
             });
-            
+
             if (videos.length > maxVideos) {
                 const remaining = videos.length - maxVideos;
                 content += `<div class="video-wrapper" style="flex: 1; position: relative;">
@@ -184,7 +184,7 @@
 
             // 按讚與珍藏圖示
             let likeIcon = post.user_liked ? "/static/images/like1.png" : "/static/images/like.png";
-            let favoriteIcon = post.user_favorited ? "/static/images/collection1.png" : "/static/images/collection.png";
+            let favoriteIcon = post.is_favorited ? "/static/images/collection1.png" : "/static/images/collection.png";
 
             // 最終HTML結構
             return `
@@ -217,6 +217,7 @@
                     </div>
                 </div>`;
         }
+
 
 
 

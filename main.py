@@ -230,6 +230,13 @@ def get_posts():
             # 確認當前用戶是否為貼文創建者，將此信息傳送到前端
             post['is_owner'] = post['members_id'] == user_id
 
+            # 檢查當前用戶是否珍藏
+            if user_id:
+                cursor.execute("SELECT COUNT(*) FROM favorites WHERE post_id = %s AND members_id = %s", (post['id'], user_id))
+                post['is_favorited'] = cursor.fetchone()['COUNT(*)'] > 0
+            else:
+                post['is_favorited'] = False
+
             # 獲取貼文的評論
             cursor.execute("""
                 SELECT comments.*, members.username 
@@ -515,7 +522,7 @@ def delete_post(post_id):
 def toggle_favorite():
     user_id = session.get('id')
     post_id = request.json.get('post_id')
-    
+
     if not user_id or not post_id:
         return jsonify({"status": "error", "message": "缺少用戶或貼文資訊"}), 400
 
@@ -527,16 +534,17 @@ def toggle_favorite():
     )
     cursor = conn.cursor()
 
-    # 檢查是否已經珍藏該貼文
+    # 檢查是否已珍藏該貼文
     cursor.execute("SELECT id FROM favorites WHERE members_id = %s AND post_id = %s", (user_id, post_id))
-
     result = cursor.fetchone()
 
     if result:
+        # 刪除珍藏
         cursor.execute("DELETE FROM favorites WHERE id = %s", (result[0],))
         conn.commit()
         response = {"status": "success", "action": "unfavorited"}
     else:
+        # 新增珍藏
         cursor.execute("INSERT INTO favorites (members_id, post_id) VALUES (%s, %s)", (user_id, post_id))
         conn.commit()
         response = {"status": "success", "action": "favorited"}
@@ -544,6 +552,7 @@ def toggle_favorite():
     cursor.close()
     conn.close()
     return jsonify(response)
+
 
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():
@@ -554,8 +563,9 @@ def get_favorites():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
+    # 按珍藏時間排序的查詢語句
     cursor.execute("""
-        SELECT posts.*, members.username,
+        SELECT posts.*, members.username, favorites.created_at AS favorited_time,
                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) AS like_count,
                (SELECT JSON_ARRAYAGG(image_path) FROM post_images WHERE post_images.post_id = posts.id) AS images,
                (SELECT JSON_ARRAYAGG(video_path) FROM post_videos WHERE post_videos.post_id = posts.id) AS videos,
@@ -564,44 +574,71 @@ def get_favorites():
         JOIN posts ON favorites.post_id = posts.id
         JOIN members ON posts.members_id = members.id
         WHERE favorites.members_id = %s
+        ORDER BY favorites.created_at DESC
     """, (user_id,))
 
     favorites = cursor.fetchall()
 
     for post in favorites:
-    # 確保 `like_count` 和 `comment_count` 都有值
+        # 確保按讚數存在
         post['like_count'] = post.get('like_count', 0)
         post['comment_count'] = post.get('comment_count', 0)
-        
-        # 確保圖片路徑的正確性
-        if isinstance(post['images'], list):  # 確認 images 已經是列表
-            post['images'] = [generate_image_url(image) for image in post['images']]
-        elif post['images']:
-            # 如果是字串，解析成列表後使用
-            post['images'] = [generate_image_url(image) for image in json.loads(post['images'])]
-        else:
-            post['images'] = []
-
-        # 類似的處理方式用於 videos
-        if isinstance(post['videos'], list):
-            post['videos'] = [generate_image_url(video) for video in post['videos']]
-        elif post['videos']:
-            post['videos'] = [generate_image_url(video) for video in json.loads(post['videos'])]
-        else:
-            post['videos'] = []
-
-        # 確保 `comments` 欄位存在，避免 KeyError
-        post['comments'] = json.loads(post.get('comments', '[]'))
-
-        
 
 
+        # 獲取貼文的圖片
+        cursor.execute("SELECT * FROM post_images WHERE post_id = %s", (post['id'],))
+        post['images'] = [
+            url_for('static', filename=f'uploads/{img["image_path"]}') for img in cursor.fetchall()
+        ]
+
+        # 獲取貼文的影片
+        cursor.execute("SELECT * FROM post_videos WHERE post_id = %s", (post['id'],))
+        post['videos'] = [
+            url_for('static', filename=f'uploads/{vid["video_path"]}') for vid in cursor.fetchall()
+        ]
+
+
+        # 查詢留言
+        cursor.execute("""
+            SELECT comments.*, members.username 
+            FROM comments
+            JOIN members ON comments.members_id = members.id
+            WHERE comments.post_id = %s
+            ORDER BY comments.created_at ASC
+        """, (post['id'],))
+        comments = cursor.fetchall()
+
+        # 計算留言數
+        post['comment_count'] = len(comments)
+
+        # 格式化留言數據，若需要可傳遞給前端
+        post['comments'] = [{
+            "id": comment['id'],
+            "username": comment['username'],
+            "content": comment['content'],
+            "created_at": comment['created_at'].strftime('%Y-%m-%d %H:%M:%S'),
+        } for comment in comments]
+
+        # 確認是否已珍藏和按讚
+        post['is_favorited'] = True
+        cursor.execute("SELECT COUNT(*) AS liked FROM likes WHERE post_id = %s AND members_id = %s", (post['id'], user_id))
+        post_liked_result = cursor.fetchone()
+        post['user_liked'] = post_liked_result['liked'] > 0 if post_liked_result else False
 
     cursor.close()
     conn.close()
 
     return jsonify({"status": "success", "favorites": favorites})
 
+
+def save_image(file):
+    upload_folder = os.path.join('static', 'uploads', 'images')
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(upload_folder, filename)
+    file.save(filepath)
+    return f'uploads/images/{filename}'
 
 
 def generate_image_url(image):
