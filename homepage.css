@@ -464,7 +464,13 @@ button:hover {
 
 .sidebar.right {
     right: 20px; /* 右側廣告的距離 */
+    position: fixed; /* 確保廣告區域固定在右側 */
+    top: 250px; /* 廣告區域的位置（可微調） */
+    width: 200px; /* 廣告區域的寬度 */
+    text-align: center;
 }
+
+
 
 .ad-image {
     max-width: 100%; /* 確保圖片寬度填滿廣告區域 */
@@ -496,3 +502,31 @@ button:hover {
     margin-right: 5px;
     cursor: pointer;
 }
+
+/* 按鈕容器樣式 */
+.favorite-button-container {
+    position: absolute; /* 使按鈕獨立定位 */
+    top: -70px; /* 調整按鈕的位置（根據廣告位置微調） */
+    right: 20px; /* 靠右對齊 */
+    text-align: center;
+    z-index: 1000; /* 確保按鈕在其他元素之上 */
+}
+
+/* 按鈕樣式 */
+.favorite-button {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.favorite-button:hover {
+    background-color: #c0392b;
+}
+
+
+
+

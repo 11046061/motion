@@ -46,13 +46,13 @@
     </div>
 
     <!-- 按鈕容器 -->
-<div class="favorite-button-container">
-    <button onclick="showFavorites()" class="favorite-button">查看珍藏的貼文</button>
-</div>
+
 
     <!-- 右側廣告區域 -->
     <div class="sidebar right">
-        
+        <div class="favorite-button-container">
+            <button onclick="showFavorites()" class="favorite-button">查看珍藏的貼文</button>
+        </div>
 
         <a href="https://m.momoshop.com.tw/goods.momo?i_code=12221717&mdiv=searchEngine&oid=1_1&kw=%E7%91%9C%E7%8F%88%E5%A2%8A" target="_blank">
             <img src="{{ url_for('static', filename='images/健身瑜珈墊廣告.png') }}" alt="右側廣告" class="ad-image">

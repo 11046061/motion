@@ -2,6 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from wordcloud import WordCloud
+from dotenv import load_dotenv  # 確保正確導入 load_dotenv
+
 import os
 import logging
 import datetime
@@ -10,21 +13,156 @@ import openapi
 import urllib.parse
 import json
 
-
+# 初始化 Flask 應用
 app = Flask(__name__, static_folder='static')
-app.secret_key = 'your_secret_key'  # 保護密碼
+app.secret_key = 'your_secret_key'
 
+# 設置日誌
 logging.basicConfig(level=logging.DEBUG)
 
+# 加載環境變數
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# 資料庫連接
 def get_db_connection():
-    connection = mysql.connector.connect(
+    return mysql.connector.connect(
         host='localhost',
         port='3306',
         user='root',
         password='figs0630',
         database='healthy'
     )
-    return connection
+
+# 查詢與 AI 聊天
+def get_open_ai_api_chat_response(member_id, prompt):
+    if len(prompt) > 20:
+        return "問題太長，請限制在20個字以內。"
+
+    messages = [
+        {"role": "system", "content": "You are an expert fitness and nutrition assistant. You only answer questions related to sports, exercise, fitness, and dietary advice. If the question is not related, please ask the user to ask a question about sports, exercise, or dietary advice."},
+        {"role": "user", "content": prompt}
+    ]
+
+    try:
+        # 發送 API 請求
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages
+        )
+        ai_answer = response.choices[0].message['content'].replace("\n", "<br>")
+
+        # 儲存提問與回答到資料庫
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = "INSERT INTO questions (member_id, question, answer) VALUES (%s, %s, %s)"
+                cursor.execute(query, (member_id, prompt, ai_answer))
+                conn.commit()
+
+        return ai_answer
+    except Exception as e:
+        logging.error(f"調用 OpenAI API 時出錯：{e}")
+        return f"An error occurred: {str(e)}"
+
+# 生成個人文字雲
+def generate_wordcloud(member_id):
+    try:
+        # 提取用戶的提問
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = "SELECT question FROM questions WHERE member_id = %s"
+                cursor.execute(query, (member_id,))
+                questions = cursor.fetchall()
+
+        # 如果沒有提問記錄則返回
+        if not questions:
+            logging.info(f"用戶 {member_id} 尚未提問，無法生成文字雲")
+            return None
+
+        # 合併問題文本
+        text = " ".join([item[0] for item in questions])
+
+        # 生成文字雲
+        wordcloud = WordCloud(
+            font_path='C:/Windows/Fonts/MSJH.TTC',
+            background_color='white',
+            width=800,
+            height=400
+        ).generate(" ".join())
+
+        # 儲存圖片
+        image_path = f"static/wordclouds/user_{member_id}_wordcloud.png"
+        wordcloud.to_file(image_path)
+
+        # 更新或插入到資料庫
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = """
+                    INSERT INTO user_wordclouds (user_id, wordcloud_image_path)
+                    VALUES (%s, %s)
+                    ON DUPLICATE KEY UPDATE wordcloud_image_path = %s
+                """
+                cursor.execute(query, (member_id, image_path, image_path))
+                conn.commit()
+
+        return url_for('static', filename=f'wordclouds/user_{member_id}_wordcloud.png')
+    except Exception as e:
+        logging.error(f"生成文字雲時出錯：{e}")
+        return None
+
+# 搜尋與提問路由
+@app.route('/ask', methods=['POST'])
+def ask():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'error': '用戶未登入'}), 401
+
+    try:
+        data = request.get_json()
+        prompt = data.get('prompt')
+        if not prompt:
+            return jsonify({"error": "請輸入問題"}), 400
+
+        # 調用 AI 回答
+        ai_answer = get_open_ai_api_chat_response(user_id, prompt)
+
+        # 更新文字雲
+        wordcloud_path = generate_wordcloud(user_id)
+
+        if wordcloud_path is None:
+            logging.error(f"無法生成用戶 {user_id} 的文字雲")
+            return jsonify({"ai_answer": ai_answer, "wordcloud_path": ""})
+
+        return jsonify({'ai_answer': ai_answer, 'wordcloud_path': wordcloud_path})
+    except Exception as e:
+        logging.error(f"在 /ask 路由中發生錯誤：{e}")
+        return jsonify({"error": "伺服器發生錯誤，請稍後再試。"}), 500
+
+# 獲取用戶專屬文字雲
+@app.route('/get-wordcloud', methods=['POST'])
+def get_wordcloud():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({"error": "用戶未登入"}), 401
+
+    try:
+        # 提取文字雲圖片路徑
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = "SELECT wordcloud_image_path FROM user_wordclouds WHERE user_id = %s"
+                cursor.execute(query, (user_id,))
+                result = cursor.fetchone()
+
+        if result:
+            return jsonify({"wordcloud_path": result[0]})
+        else:
+            return jsonify({"error": "尚未生成文字雲"})
+    except Exception as e:
+        logging.error(f"獲取文字雲時出錯：{e}")
+        return jsonify({"error": str(e)}), 500
+
+
+
 
 # 確保uploads目錄存在
 UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads')
@@ -849,35 +987,39 @@ def update_profile():
         data = request.get_json()
         height = data.get('height')
         weight_today = data.get('weight_today')
+        waist = data.get('waist')
+        hip = data.get('hip')
 
-        if not height or not weight_today:
+        if not height or not weight_today or not waist or not hip:
             return jsonify({'error': 'Invalid data provided'}), 400
+
+        # 計算腰臀比
+        waist_hip_ratio = round(waist / hip, 2)
 
         connection = get_db_connection()
         cursor = connection.cursor()
 
-        # 插入或更新用戶的體重和身高
+        # 插入或更新用戶的資料
         cursor.execute('SELECT id FROM user_fitness_data WHERE user_id = %s AND date = CURDATE()', (user_id,))
         result = cursor.fetchone()
 
         if result:
-            # 更新當天體重
-            cursor.execute('UPDATE user_fitness_data SET weight_today = %s, height = %s WHERE user_id = %s AND date = CURDATE()', 
-                           (weight_today, height, user_id))
+            cursor.execute('''
+                UPDATE user_fitness_data 
+                SET weight_today = %s, height = %s, waist = %s, hip = %s, waist_hip_ratio = %s
+                WHERE user_id = %s AND date = CURDATE()
+            ''', (weight_today, height, waist, hip, waist_hip_ratio, user_id))
         else:
-            # 插入新資料
-            cursor.execute('INSERT INTO user_fitness_data (user_id, height, weight_today, date) VALUES (%s, %s, %s, CURDATE())',
-                           (user_id, height, weight_today))
+            cursor.execute('''
+                INSERT INTO user_fitness_data (user_id, height, weight_today, waist, hip, waist_hip_ratio, date)
+                VALUES (%s, %s, %s, %s, %s, %s, CURDATE())
+            ''', (user_id, height, weight_today, waist, hip, waist_hip_ratio))
 
         connection.commit()
         cursor.close()
-        print("更新成功，回傳 success")  # 確認伺服器處理成功
-        return jsonify({'success': True}), 200, {'ContentType': 'application/json'}
+        return jsonify({'success': True}), 200
     except Exception as e:
-        # 捕捉任何異常，回傳錯誤訊息
-        print(f"Error updating profile data: {str(e)}")
         return jsonify({'error': 'Failed to update profile data'}), 500
-
 
 
 
@@ -889,28 +1031,28 @@ def get_weight_history():
             return jsonify({'error': 'User not logged in'}), 401
 
         connection = get_db_connection()
-        cursor = connection.cursor()
-        
-        # 取得用戶所有的體重歷史紀錄
-        cursor.execute('SELECT date, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date ASC', (user_id,))
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT date, weight_today, waist_hip_ratio
+            FROM user_fitness_data
+            WHERE user_id = %s
+            ORDER BY date ASC
+        ''', (user_id,))
         data = cursor.fetchall()
-        
+        cursor.close()
+
         if not data:
-            return jsonify({'error': 'No data found'}), 404  # 確保回傳適當的錯誤訊息
+            return jsonify({'error': 'No data found'}), 404
 
-        # 打印出資料庫返回的資料
-        print(f"Weight history data from DB: {data}")
+        dates = [row['date'].strftime('%Y-%m-%d') for row in data]
+        weights = [row['weight_today'] for row in data]
+        waist_hip_ratios = [row['waist_hip_ratio'] for row in data]
 
-        dates = [row[0].strftime('%Y-%m-%d') for row in data]
-        weights = [row[1] for row in data]
-
-        # 打印出將要回傳的格式
-        print(f"Returning dates: {dates}, weights: {weights}")
-        return jsonify({'dates': dates, 'weights': weights})
-
+        return jsonify({'dates': dates, 'weights': weights, 'waist_hip_ratios': waist_hip_ratios})
     except Exception as e:
-        print(f"Error fetching weight history: {str(e)}")
+        logging.error(f'Error fetching weight history: {e}')
         return jsonify({'error': str(e)}), 500
+
 
 
 
