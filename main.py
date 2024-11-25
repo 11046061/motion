@@ -45,7 +45,6 @@ def get_open_ai_api_chat_response(member_id, prompt):
     ]
 
     try:
-        # 發送 API 請求
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages
@@ -55,7 +54,7 @@ def get_open_ai_api_chat_response(member_id, prompt):
         # 儲存提問與回答到資料庫
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                query = "INSERT INTO questions (member_id, question, answer) VALUES (%s, %s, %s)"
+                query = "INSERT INTO questions (member_id, question, answer, asked_at) VALUES (%s, %s, %s, NOW())"
                 cursor.execute(query, (member_id, prompt, ai_answer))
                 conn.commit()
 
@@ -64,48 +63,51 @@ def get_open_ai_api_chat_response(member_id, prompt):
         logging.error(f"調用 OpenAI API 時出錯：{e}")
         return f"An error occurred: {str(e)}"
 
-# 生成個人文字雲
-def generate_wordcloud(member_id):
+# 生成並保存個人文字雲到資料庫
+def generate_wordcloud_and_save_to_db(member_id):
     try:
-        # 提取用戶的提問
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query = "SELECT question FROM questions WHERE member_id = %s"
                 cursor.execute(query, (member_id,))
                 questions = cursor.fetchall()
 
-        # 如果沒有提問記錄則返回
         if not questions:
             logging.info(f"用戶 {member_id} 尚未提問，無法生成文字雲")
             return None
 
-        # 合併問題文本
-        text = " ".join([item[0] for item in questions])
+        # 使用 OpenCC 進行繁體中文轉換
+        cc = OpenCC('s2t')
+        filtered_text = " ".join([cc.convert(item[0]) for item in questions])
 
         # 生成文字雲
         wordcloud = WordCloud(
             font_path='C:/Windows/Fonts/MSJH.TTC',
-            background_color='white',
             width=800,
-            height=400
-        ).generate(" ".join())
+            height=400,
+            background_color='white'
+        ).generate(filtered_text)
 
-        # 儲存圖片
-        image_path = f"static/wordclouds/user_{member_id}_wordcloud.png"
-        wordcloud.to_file(image_path)
+        # 將圖片保存到內存中（不保存到文件系統）
+        img_byte_arr = io.BytesIO()
+        wordcloud.to_image().save(img_byte_arr, format='PNG')
+        img_byte_arr = img_byte_arr.getvalue()  # 這是二進制圖片數據
 
-        # 更新或插入到資料庫
+        # 將圖片數據存儲到資料庫
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                query = """
-                    INSERT INTO user_wordclouds (user_id, wordcloud_image_path)
-                    VALUES (%s, %s)
-                    ON DUPLICATE KEY UPDATE wordcloud_image_path = %s
+                insert_query = """
+                    INSERT INTO user_wordclouds (user_id, wordcloud_image_data, updated_at)
+                    VALUES (%s, %s, NOW())
+                    ON DUPLICATE KEY UPDATE
+                    wordcloud_image_data = VALUES(wordcloud_image_data),
+                    updated_at = NOW()
                 """
-                cursor.execute(query, (member_id, image_path, image_path))
+                cursor.execute(insert_query, (member_id, img_byte_arr))
                 conn.commit()
 
-        return url_for('static', filename=f'wordclouds/user_{member_id}_wordcloud.png')
+        logging.info(f"用戶 {member_id} 的文字雲已成功存儲到資料庫。")
+        return True
     except Exception as e:
         logging.error(f"生成文字雲時出錯：{e}")
         return None
@@ -113,56 +115,46 @@ def generate_wordcloud(member_id):
 # 搜尋與提問路由
 @app.route('/ask', methods=['POST'])
 def ask():
-    user_id = session.get('id')
-    if not user_id:
-        return jsonify({'error': '用戶未登入'}), 401
-
     try:
         data = request.get_json()
+        member_id = data.get('member_id')
         prompt = data.get('prompt')
-        if not prompt:
-            return jsonify({"error": "請輸入問題"}), 400
 
-        # 調用 AI 回答
-        ai_answer = get_open_ai_api_chat_response(user_id, prompt)
+        if not member_id or not prompt:
+            return jsonify({"error": "缺少必要的參數"}), 400
 
-        # 更新文字雲
-        wordcloud_path = generate_wordcloud(user_id)
+        response = get_open_ai_api_chat_response(member_id, prompt)
+        return jsonify({"ai_answer": response})
 
-        if wordcloud_path is None:
-            logging.error(f"無法生成用戶 {user_id} 的文字雲")
-            return jsonify({"ai_answer": ai_answer, "wordcloud_path": ""})
-
-        return jsonify({'ai_answer': ai_answer, 'wordcloud_path': wordcloud_path})
     except Exception as e:
-        logging.error(f"在 /ask 路由中發生錯誤：{e}")
-        return jsonify({"error": "伺服器發生錯誤，請稍後再試。"}), 500
+        logging.error(f"處理 '/ask' 路由請求時出現錯誤：{str(e)}")
+        return jsonify({"error": "伺服器錯誤"}), 500
+
 
 # 獲取用戶專屬文字雲
-@app.route('/get-wordcloud', methods=['POST'])
-def get_wordcloud():
-    user_id = session.get('id')
-    if not user_id:
-        return jsonify({"error": "用戶未登入"}), 401
-
+@app.route('/wordcloud/<int:user_id>')
+def get_wordcloud(user_id):
     try:
-        # 提取文字雲圖片路徑
-        with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                query = "SELECT wordcloud_image_path FROM user_wordclouds WHERE user_id = %s"
-                cursor.execute(query, (user_id,))
-                result = cursor.fetchone()
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        query = "SELECT wordcloud_image_data FROM user_wordclouds WHERE user_id = %s"
+        cursor.execute(query, (user_id,))
+        result = cursor.fetchone()
 
-        if result:
-            return jsonify({"wordcloud_path": result[0]})
-        else:
-            return jsonify({"error": "尚未生成文字雲"})
-    except Exception as e:
-        logging.error(f"獲取文字雲時出錯：{e}")
-        return jsonify({"error": str(e)}), 500
+        if result and result[0]:
+            img_byte_arr = io.BytesIO(result[0])
+            return send_file(img_byte_arr, mimetype='image/png')
 
+        return "文字雲未找到", 404
 
-
+    except mysql.connector.Error as err:
+        logging.error(f"資料庫錯誤：{err}")
+        return "伺服器錯誤", 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # 確保uploads目錄存在
 UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads')
@@ -994,7 +986,7 @@ def update_profile():
             return jsonify({'error': 'Invalid data provided'}), 400
 
         # 計算腰臀比
-        waist_hip_ratio = round(waist / hip, 2)
+        waist_hip_ratio = round(waist / hip, 2) if waist and hip else None
 
         connection = get_db_connection()
         cursor = connection.cursor()

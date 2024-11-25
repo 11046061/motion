@@ -63,6 +63,20 @@
                     
                     <label for="weight">體重 (公斤):</label>
                     <input type="number" id="weight" placeholder="輸入您的體重">
+
+                    <!-- 腰臀輸入框 -->
+                    <label for="waist">腰圍 (公分):</label>
+                    <input type="number" id="waist" placeholder="輸入您的腰圍">
+                    <label for="hip">臀圍 (公分):</label>
+                    <input type="number" id="hip" placeholder="輸入您的臀圍">
+
+                    <!-- 新增腰臀紀錄圖 -->
+                    <h3>腰臀比紀錄</h3>
+                    <canvas id="waistHipChart" width="400" height="200"></canvas>
+                    <div id="settingsDropdown" style="display: none;">
+                        <!-- 設定選項 -->
+                    </div>
+                    
                     
                     <button type="submit">儲存資料</button>
                 </form>
@@ -89,7 +103,8 @@
         {% endif %}
     </main>
 
-    <script src="static/scripts/profile.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="static/scripts/profile.js"></script>
+    
 </body>
 </html>
