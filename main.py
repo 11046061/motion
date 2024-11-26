@@ -131,7 +131,6 @@ def ask():
         return jsonify({"error": "伺服器錯誤"}), 500
 
 
-# 獲取用戶專屬文字雲
 @app.route('/wordcloud/<int:user_id>')
 def get_wordcloud(user_id):
     try:
@@ -146,15 +145,15 @@ def get_wordcloud(user_id):
             return send_file(img_byte_arr, mimetype='image/png')
 
         return "文字雲未找到", 404
-
     except mysql.connector.Error as err:
-        logging.error(f"資料庫錯誤：{err}")
+        logging.error(f"資料庫錯誤: {err}")
         return "伺服器錯誤", 500
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
 
 # 確保uploads目錄存在
 UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads')
