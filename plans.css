@@ -189,3 +189,31 @@ h2 {
     text-align: left;       /* 讓文字靠左對齊 */
 }
 
+#exerciseTable {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    background-color: #444;
+    color: white;
+}
+
+#exerciseTable th, #exerciseTable td {
+    border: 1px solid white;
+    padding: 10px;
+    text-align: center;
+}
+
+
+#exerciseTable th {
+    background-color: #303030;
+    font-weight: bold;
+}
+
+#exerciseChart {
+    margin-top: 20px;
+    max-width: 800px;
+    height: auto;
+}
+
+
+

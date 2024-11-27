@@ -928,21 +928,35 @@ def get_plan_status():
 
 @app.route('/complete-plan', methods=['POST'])
 def complete_plan():
-    user_id = session.get('id')  # 從 session 中獲取使用者 ID
+    user_id = session.get('id')
     if not user_id:
         return jsonify({'error': 'User not logged in'}), 401
 
     today_date = datetime.date.today()
 
-    # 更新 plans 表，將計畫標記為已完成
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute('INSERT INTO plans (user_id, date, completed) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE completed = %s',
-                   (user_id, today_date, True, True))
-    connection.commit()
-    cursor.close()
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
 
-    return jsonify({'status': 'success'})
+        # 確認當天是否已有完成記錄
+        cursor.execute('SELECT completed FROM plans WHERE user_id = %s AND date = %s', (user_id, today_date))
+        plan = cursor.fetchone()
+
+        if plan and plan['completed']:
+            return jsonify({'status': 'already_completed'})
+
+        # 更新 plans 表為完成狀態
+        cursor.execute('''
+            INSERT INTO plans (user_id, date, completed)
+            VALUES (%s, %s, TRUE)
+            ON DUPLICATE KEY UPDATE completed = TRUE
+        ''', (user_id, today_date))
+        connection.commit()
+        cursor.close()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/get-profile-data', methods=['GET'])
@@ -978,6 +992,7 @@ def update_profile():
         data = request.get_json()
         height = data.get('height')
         weight_today = data.get('weight_today')
+        waist = data.get('waist')  # 修正此行，定義 waist
         hip = data.get('hip')
 
         if not height or not weight_today or not waist or not hip:
@@ -1010,6 +1025,126 @@ def update_profile():
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'error': 'Failed to update profile data'}), 500
+    
+@app.route('/get-exercise-data', methods=['GET'])
+def get_exercise_data():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('''
+        SELECT exercise, SUM(reps) as total_reps
+        FROM user_exercises
+        WHERE user_id = %s
+        GROUP BY exercise
+    ''', (user_id,))
+    data = cursor.fetchall()
+    cursor.close()
+
+    exercises = [row['exercise'] for row in data]
+    reps = [row['total_reps'] for row in data]
+
+    return jsonify({'exercises': exercises, 'reps': reps})
+
+@app.route('/get-exercise-stats', methods=['GET'])
+def get_exercise_stats():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT exercise_name, SUM(sets * reps) AS total_reps
+            FROM user_exercises
+            WHERE user_id = %s
+            GROUP BY exercise_name
+        ''', (user_id,))
+        stats = cursor.fetchall()
+        cursor.close()
+        return jsonify({'stats': stats})  # 確保數據返回格式正確
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+        
+@app.route('/add-exercise', methods=['POST'])
+def add_exercise():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    data = request.get_json()
+    exercise_name = data.get('exercise_name')
+    sets = data.get('sets')
+    reps = data.get('reps')
+
+    if not exercise_name or not sets or not reps:
+        return jsonify({'error': 'Invalid data'}), 400
+
+    today_date = datetime.date.today()
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute('''
+            INSERT INTO user_exercises (user_id, exercise_name, sets, reps, date)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (user_id, exercise_name, sets, reps, today_date))
+        connection.commit()
+        cursor.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get-exercises', methods=['GET'])
+def get_exercises():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    today_date = datetime.date.today()
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT id, exercise_name, sets, reps
+            FROM user_exercises
+            WHERE user_id = %s AND date = %s
+        ''', (user_id, today_date))
+        exercises = cursor.fetchall()
+        cursor.close()
+        return jsonify({'exercises': exercises})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+@app.route('/delete-exercise/<int:exercise_id>', methods=['DELETE'])
+def delete_exercise(exercise_id):
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute('SELECT id FROM user_exercises WHERE id = %s AND user_id = %s', (exercise_id, user_id))
+        exercise = cursor.fetchone()
+
+        if exercise:
+            cursor.execute('DELETE FROM user_exercises WHERE id = %s', (exercise_id,))
+            connection.commit()
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Exercise not found or not authorized'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 

@@ -56,7 +56,7 @@ main {
     justify-content: center;
     align-items: flex-start;
     flex-direction: column;
-    max-width: 800px; /* 設置內容最大寬度 */
+    max-width: 1500px; /* 設置內容最大寬度 */
     margin: 0 auto; /* 居中對齊 */
     padding: 20px;
 }
@@ -172,21 +172,56 @@ h1, h3 {
 }
 
 .profile-container {
-    background-color: rgb(207, 207, 207); /* 改為白色背景 */
+    background-color: rgb(207, 207, 207);
     border-radius: 10px;
     padding: 20px;
-    color: black; /* 黑色字體 */
-    width: 90%;
-    margin: 20px auto; /* 居中 */
+    color: black;
+    width: 95%; /* 增加容器寬度 */
+    margin: 20px auto;
 }
 
-canvas {
-    margin-top: 20px;
-    width: 100%; /* 寬度100% */
+.charts-container {
+    display: flex;
+    flex-wrap: wrap; /* 允許多行排列 */
+    justify-content: space-around; /* 圖表之間平均分佈 */
+    gap: 20px; /* 圖表之間的水平和垂直間距 */
+    width: 100%; /* 保證容器全寬 */
 }
 
-h3 {
-    color: rgb(0, 0, 0); /* 確保標題清晰 */
+.charts-container div {
+    flex: 0 1 calc(48%); /* 每個圖表容器占48%寬度 */
+    max-width: 48%; /* 限制容器最大寬度 */
+    margin-bottom: 20px; /* 增加容器間距 */
+}
+
+.charts-container canvas {
+    width: 100%; /* 確保圖表占滿容器 */
+    height: 180px; /* 減小圖表高度 */
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+}
+
+.charts-container h3 {
+    text-align: center;
+    margin-bottom: 10px; /* 與圖表保持距離 */
+    font-size: 16px; /* 減小標題字體大小 */
+}
+.bmi-note {
+    font-size: 14px; /* 設置較小的字體大小 */
+    color: #333; /* 使用灰色文字，與背景區分 */
+    text-align: center; /* 文字置中 */
+    margin-bottom: 10px; /* 與圖表保持適當距離 */
+    font-style: italic; /* 添加斜體，顯得更柔和 */
+}
+
+.waist-hip-note {
+    font-size: 14px; /* 設置較小的字體大小 */
+    color: #333; /* 使用灰色文字，避免與背景或圖表衝突 */
+    text-align: center; /* 文字置中 */
+    margin-bottom: 10px; /* 與圖表保持適當距離 */
+    font-style: italic; /* 添加斜體以突顯提示文字 */
 }
 
 
