@@ -978,7 +978,6 @@ def update_profile():
         data = request.get_json()
         height = data.get('height')
         weight_today = data.get('weight_today')
-        waist = data.get('waist')
         hip = data.get('hip')
 
         if not height or not weight_today or not waist or not hip:

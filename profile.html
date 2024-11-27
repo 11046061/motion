@@ -70,29 +70,31 @@
                     <label for="hip">臀圍 (公分):</label>
                     <input type="number" id="hip" name="hip" placeholder="輸入您的臀圍">
                     <button type="submit">儲存資料</button>
-
-
-                    <!-- 新增腰臀紀錄圖 -->
-                    <h3>腰臀比紀錄</h3>
-                    <canvas id="waistHipChart" width="400" height="200"></canvas>
+                </form>
                     <div id="settingsDropdown" style="display: none;">
                         <!-- 設定選項 -->
                     </div>
-                    
-                    
-                </form>
 
-                <!-- BMI歷史折線圖 -->
-                <h3>歷史BMI</h3>
-                <canvas id="weightChart" width="400" height="200"></canvas>
-
-                <!-- 顯示當前BMI狀態的橫條圖 -->
-                <h3>當前BMI狀態</h3>
-                <canvas id="bmiStatusChart" width="400" height="200"></canvas>
-
-                <!-- 體重紀錄折線圖 -->
-                <h3>體重紀錄</h3>
-                <canvas id="weightHistoryChart" width="400" height="200"></canvas>
+                <div class="charts-container">
+                <!-- 新增腰臀紀錄圖 -->
+                <div>
+                    <h3>腰臀比紀錄</h3>
+                    <p class="waist-hip-note">正常區間為：男生 < 0.9、女生 < 0.8</p>
+                    <canvas id="waistHipChart"></canvas>
+                </div>
+                <div>
+                    <h3>歷史BMI</h3>
+                    <p class="bmi-note">過輕：BMI < 18.5、適中：18.5 <= BMI <= 25、過重：BMI > 25</p>
+                    <canvas id="weightChart"></canvas>
+                </div>
+                <div>
+                    <h3>當前BMI狀態</h3>
+                    <canvas id="bmiStatusChart"></canvas>
+                </div>
+                <div>
+                    <h3>體重紀錄</h3>
+                    <canvas id="weightHistoryChart"></canvas>
+                </div>
 
                 <!-- 目標體重展示 -->
                 <h3>目標體重：<span id="targetWeight"></span></h3>
