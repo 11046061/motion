@@ -208,12 +208,20 @@ h2 {
     background-color: #303030;
     font-weight: bold;
 }
-
-#exerciseChart {
-    margin-top: 20px;
+#chart-container {
+    width: 100%;
     max-width: 800px;
+    margin: 0 auto; /* 居中 */
+}
+
+#exerciseLineChart {
+    width: 100%;
     height: auto;
 }
+
+
+
+
 
 
 

@@ -50,21 +50,16 @@
                 <input type="number" id="repsInput" min="1">
                 <button type="button" id="addExerciseButton">加入清單</button>
             </form>
-            <canvas id="exerciseChart" width="800" height="400"></canvas>
+            <div id="chart-container">
+                <canvas id="exerciseLineChart"></canvas>
+            </div>
+                      
         </section>
     </main>
     
 
     
-    <div class="plan-description">
-        計畫是根據每天算出的BMI來抓取<br>
-        過輕、過重或適中的預訂計畫<br>
-        過輕計畫：BMI < 18.5<br>
-        適中計畫：BMI >= 18.5 且 <= 25<br>
-        過重計畫：BMI > 25<br>
-        一個動作一分鐘，中間休息三十秒。
-    </div>
-
+ 
     
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

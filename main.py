@@ -1101,7 +1101,6 @@ def add_exercise():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/get-exercises', methods=['GET'])
 def get_exercises():
     user_id = session.get('id')
@@ -1112,16 +1111,33 @@ def get_exercises():
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
+
+        # 查詢當日動作
         cursor.execute('''
             SELECT id, exercise_name, sets, reps
             FROM user_exercises
             WHERE user_id = %s AND date = %s
         ''', (user_id, today_date))
         exercises = cursor.fetchall()
+
+        # 動作名稱對應表
+        exercise_translation = {
+            "pushup": "伏地挺身",
+            "squat": "深蹲",
+            "plank": "平板支撐",
+            # 加入更多動作翻譯
+        }
+
+        # 將英文名稱轉換為中文
+        for exercise in exercises:
+            exercise['exercise_name'] = exercise_translation.get(exercise['exercise_name'], exercise['exercise_name'])
+
         cursor.close()
         return jsonify({'exercises': exercises})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
 
 
 
