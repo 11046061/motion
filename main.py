@@ -12,6 +12,7 @@ import openai
 import openapi
 import urllib.parse
 import json
+import random
 
 # 初始化 Flask 應用
 app = Flask(__name__, static_folder='static')
@@ -1136,6 +1137,126 @@ def get_exercises():
         return jsonify({'exercises': exercises})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/complete-exercises', methods=['POST'])
+def complete_exercises():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User not logged in'}), 401
+
+    today_date = datetime.date.today()
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # 標記當天的動作為已完成
+        cursor.execute('''
+            UPDATE user_exercises
+            SET completed = TRUE
+            WHERE user_id = %s AND date = %s
+        ''', (user_id, today_date))
+
+        # 查詢圖表所需的總數據
+        cursor.execute('''
+            SELECT exercise_name AS name, SUM(sets * reps) AS total_reps
+            FROM user_exercises
+            WHERE user_id = %s AND completed = TRUE
+            GROUP BY exercise_name
+        ''', (user_id,))
+        chart_data = cursor.fetchall()
+
+        connection.commit()
+
+        return jsonify({'success': True, 'chartData': chart_data})
+    except Exception as e:
+        logging.error(f"Error in /complete-exercises: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def get_random_color():
+    return f"rgba({random.randint(0, 255)}, {random.randint(0, 255)}, {random.randint(0, 255)}, 0.6)"
+
+
+@app.route('/query-exercises', methods=['POST'])
+def query_exercises():
+    user_id = session.get('id')
+    date = request.json.get('date')
+
+    if not user_id or not date:
+        return jsonify({'error': 'Missing user_id or date'}), 400
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        # 查詢指定日期的動作數據
+        cursor.execute('''
+            SELECT date, exercise_name, SUM(sets) AS total_sets, SUM(reps) AS total_reps
+            FROM user_exercises
+            WHERE user_id = %s AND date = %s
+            GROUP BY exercise_name
+        ''', (user_id, date))
+        exercises = cursor.fetchall()
+
+        # 確保即使 `completed = 0` 的記錄也會顯示
+        if not exercises:  # 如果沒有找到任何數據，檢查是否有當日數據
+            cursor.execute('''
+                SELECT exercise_name, sets, reps
+                FROM user_exercises
+                WHERE user_id = %s AND date = %s
+            ''', (user_id, date))
+            exercises = cursor.fetchall()
+
+        # 整理圖表數據
+        cursor.execute('''
+            SELECT date, exercise_name, SUM(sets * reps) AS total_reps
+            FROM user_exercises
+            WHERE user_id = %s
+            GROUP BY date, exercise_name
+            ORDER BY date ASC
+        ''', (user_id,))
+        chart_data = cursor.fetchall()
+
+        grouped_data = {}
+        for row in chart_data:
+            date_str = row['date'].strftime('%Y-%m-%d')
+            if date_str not in grouped_data:
+                grouped_data[date_str] = {}
+            grouped_data[date_str][row['exercise_name']] = row['total_reps']
+
+        labels = sorted(grouped_data.keys())
+        datasets = [
+            {
+                'label': exercise,
+                'data': [grouped_data[date].get(exercise, 0) for date in labels],
+                'borderColor': get_random_color(),
+                'fill': False,
+            }
+            for exercise in {row['exercise_name'] for row in chart_data}
+        ]
+
+        return jsonify({
+            'labels': labels,
+            'datasets': datasets,
+            'exercises': exercises
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        connection.close()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
