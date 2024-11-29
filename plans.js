@@ -1,4 +1,4 @@
-/*
+
 document.addEventListener('DOMContentLoaded', function () {
     const exerciseTable = document.getElementById('exerciseTable');
     const today = new Date();
@@ -198,25 +198,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 顯示當天的動作並添加計時功能
     function displayExercise(exerciseObj, dayOfWeek) {
+        const exerciseTable = document.getElementById('exerciseTable');
         exerciseTable.innerHTML = `
             <tr>
                 <th>日期</th>
                 <th>訓練計畫</th>
             </tr>
             <tr>
-            <td>${dayOfWeek}</td>
-            <td style="text-align: center;">
-                <div class="exercise-container" style="display: flex; align-items: center; justify-content: center;">
-                    <span id="exerciseName" class="exercise-name">${exerciseObj.exercise}</span>
-                </div>
-                <video id="exerciseVideo" width="600" controls>
-                    <source id="videoSource" src="/static/videos/${exerciseObj.video}" type="video/mp4">
-                    你的瀏覽器不支援影片播放。
-                </video>
-                <div id="timerDisplay-${dayOfWeek}" class="timer-display" style="margin-top: 10px;">00:00</div>
-            </td>
-        </tr>
+                <td>${dayOfWeek}</td>
+                <td>
+                    <div class="exercise-container" style="text-align: center;">
+                        <h3 id="exerciseName">${exerciseObj.exercise}</h3>
+                        <video id="exerciseVideo" controls width="600">
+                            <source src="/static/videos/${exerciseObj.video}" type="video/mp4">
+                            您的瀏覽器不支援此影片。
+                        </video>
+                        <div id="timerDisplay-${dayOfWeek}" class="timer-display">00:00</div>
+                    </div>
+                </td>
+            </tr>
         `;
+    
+    
         
         const startButton = document.createElement('button');
         startButton.id = `startTimer-${dayOfWeek}`;
@@ -371,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
-*/
+
 
 
 document.addEventListener('DOMContentLoaded', () => {

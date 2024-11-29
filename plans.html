@@ -50,11 +50,22 @@
                 <input type="number" id="repsInput" min="1">
                 <button type="button" id="addExerciseButton">加入清單</button>
             </form>
-            <div id="chart-container">
-                <canvas id="exerciseLineChart"></canvas>
+            
+            <div id="plans-container" class="schedule">
+                <table id="exerciseTable">
+                    <tr>
+                        <th>日期</th>
+                        <th>訓練計畫</th>
+                    </tr>
+                </table>
+                <div id="chart-container">
+                    <canvas id="exerciseLineChart"></canvas>
+                </div>
             </div>
-                      
+                       
         </section>
+        
+        
         <form id="queryForm">
             <label for="queryDate">查詢日期:</label>
             <input type="date" id="queryDate">
