@@ -22,24 +22,6 @@ document.addEventListener('DOMContentLoaded', function () {
             exerciseTable.innerHTML = `<tr><td>未能加載健身計劃，請稍後再試</td></tr>`;
         });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const addExerciseButton = document.getElementById('addExerciseButton');
-            if (addExerciseButton) {
-                addExerciseButton.addEventListener('click', handleAddExercise);
-            } else {
-                console.error('addExerciseButton 未找到，請檢查 HTML 是否包含該元素');
-            }
-        });
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
     // 加載用戶資料並檢查當天體重
     function loadProfileData() {
         const dayOfWeekEnglish = today.toLocaleString('en-US', { weekday: 'long' });
@@ -423,19 +405,33 @@ document.addEventListener('DOMContentLoaded', () => {
      * 從後端獲取資料並渲染表格和圖表
      */
     function fetchAndRenderExercises() {
-        fetch('/get-exercises')
+        fetch('/get-profile-data')
             .then(response => response.json())
-            .then(data => {
-                if (data.exercises) {
-                    renderExerciseTable(data.exercises);
-                } else {
-                    console.error('無法獲取動作列表:', data.error || '未知錯誤');
+            .then(profileData => {
+                const weightToday = profileData.weight_today;
+    
+                if (!weightToday) {
+                    alert('今日體重尚未設置，請到個人頁面更新後重試');
+                    return;
                 }
+    
+                return fetch('/get-exercises')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.exercises || data.exercises.length === 0) {
+                            alert('尚未添加任何動作，請新增動作後重試');
+                            return;
+                        }
+    
+                        // 渲染表格
+                        renderExerciseTable(data.exercises);
+    
+                        // 渲染圖表
+                        renderExerciseChart(data.exercises, weightToday);
+                    });
             })
-            .catch(error => console.error('獲取動作列表時發生錯誤:', error));
+            .catch(error => console.error('發生錯誤:', error));
     }
-    
-    
     
 
     /**
@@ -443,16 +439,35 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {Array} exercises - 從後端獲取的動作資料
      */
     function renderExerciseTable(exercises) {
-        const table = document.getElementById('recordedExerciseTable');
-        table.innerHTML = `
+        // 確保 exercises 是有效的陣列
+        if (!Array.isArray(exercises)) {
+            console.warn('傳遞給 renderExerciseTable 的數據不是有效的陣列:', exercises);
+            exercises = []; // 使用空數組避免崩潰
+        }
+    
+        // 重置表格內容
+        exerciseTable.innerHTML = `
             <tr>
                 <th>動作</th>
                 <th>組數</th>
                 <th>次數</th>
                 <th>操作</th>
             </tr>`;
-        
-        exercises.forEach(exercise => {
+    
+        // 數據加總邏輯：將相同的動作名稱進行組數與次數的加總
+        const groupedData = exercises.reduce((acc, curr) => {
+            const key = curr.exercise_name;
+            if (!acc[key]) {
+                acc[key] = { ...curr }; // 初始化
+            } else {
+                acc[key].sets += curr.sets; // 加總組數
+                acc[key].reps += curr.reps; // 加總次數
+            }
+            return acc;
+        }, {});
+    
+        // 將加總後的數據渲染到表格
+        Object.values(groupedData).forEach(exercise => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${exercise.exercise_name}</td>
@@ -461,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>
                     <button class="delete-btn" data-id="${exercise.id}">刪除</button>
                 </td>`;
-            table.appendChild(row);
+            exerciseTable.appendChild(row);
         });
     
         // 綁定刪除按鈕事件
@@ -473,6 +488,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+
+
+    /**
+     * 新增動作到清單
+     */
+    function handleAddExercise() {
+        const exerciseName = exerciseSelect.value;
+        const sets = parseInt(setsInput.value, 10);
+        const reps = parseInt(repsInput.value, 10);
+
+        if (!exerciseName || sets <= 0 || reps <= 0) {
+            alert('請完整填寫所有欄位');
+            return;
+        }
+
+        fetch('/add-exercise', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exercise_name: exerciseName, sets, reps })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('新增成功');
+                    fetchAndRenderExercises(); // 新增後重新渲染
+                } else {
+                    alert('新增失敗: ' + (data.error || '未知錯誤'));
+                }
+            })
+            .catch(error => console.error('新增動作時發生錯誤:', error));
+    }
+
+    /**
+     * 刪除動作
+     * @param {number} exerciseId - 動作 ID
+     */
     function handleDeleteExercise(exerciseId) {
         fetch(`/delete-exercise/${exerciseId}`, { method: 'DELETE' })
             .then(response => response.json())
@@ -486,45 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => console.error('刪除動作時發生錯誤:', error));
     }
-    
-    
-
-
-    /**
-     * 新增動作到清單
-     */
-    function handleAddExercise() {
-        const exerciseSelect = document.getElementById('exerciseSelect');
-        const setsInput = document.getElementById('setsInput');
-        const repsInput = document.getElementById('repsInput');
-    
-        const exerciseName = exerciseSelect.value;
-        const sets = parseInt(setsInput.value, 10);
-        const reps = parseInt(repsInput.value, 10);
-    
-        // 檢查輸入的有效性
-        if (!exerciseName || isNaN(sets) || isNaN(reps) || sets <= 0 || reps <= 0) {
-            alert('請輸入有效的動作、組數和次數');
-            return;
-        }
-    
-        fetch('/add-exercise', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exercise_name: exerciseName, sets, reps }),
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('動作新增成功');
-                    fetchAndRenderExercises(); // 從後端重新獲取並渲染表格
-                } else {
-                    alert(`新增失敗: ${data.error || '未知錯誤'}`);
-                }
-            })
-            .catch(error => console.error('新增動作時發生錯誤:', error));
-    }
-    
 
     /**
      * 渲染折線圖

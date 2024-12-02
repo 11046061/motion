@@ -16,8 +16,6 @@ header {
     background-color: #2B2E2E;
 }
 
-
-
 .logo img {
     height: 50px;
 }
@@ -54,33 +52,35 @@ nav ul li a.active::after {
 
 main {
     display: flex;
-    justify-content: center;
+    flex-direction: column; /* 改為垂直排列 */
+    align-items: center;
     padding: 20px;
-    position: relative;
+    gap: 20px; /* 增加上下間距 */
 }
 
 .schedule {
     width: 70%; /* 表格寬度 */
+    margin: 0 auto;
+    text-align: center;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    background-color: #444; /* 設置表格背景顏色 */
+    background-color: #444; /* 表格背景顏色 */
 }
 
 table, th, td {
     border: 1px solid white;
     padding: 10px;
-    text-align: center; /* 讓表格中的文字置中 */
+    text-align: center; /* 表格文字置中 */
 }
 
 th, td {
-    font-size: 18px; /* 將字體大小調大 */
-    padding: 15px;   /* 增加表格單元格內的間距 */
+    font-size: 18px; /* 調整字體大小 */
+    padding: 15px;   /* 增加表格單元格內間距 */
     text-align: center; /* 讓文字置中 */
 }
-
 
 th {
     background-color: #333; /* 保持表頭背景顏色 */
@@ -88,10 +88,8 @@ th {
 }
 
 td {
-    padding: 10px; /* 減少內邊距以縮小高度 */
-    text-align: center;
+    padding: 10px; /* 減少內邊距縮小高度 */
 }
-
 
 .timer-display {
     text-align: center;
@@ -115,14 +113,12 @@ td {
     background-color: #0056b3;
 }
 
-/* 圖片樣式，右對齊 */
 body img:not(.logo img) {
     float: right;
     margin-left: 20px;
     max-width: 150px;
     height: auto;
 }
-
 
 .bmi-info {
     width: 70%; /* 使寬度與表格一致 */
@@ -152,76 +148,49 @@ body img:not(.logo img) {
 .exercise-image {
     width: 100px; /* 調整圖片大小 */
     height: auto;
-    margin-bottom: 20px; /* 增加圖片和影片之間的間距 */
-}
-
-.schedule {
-    width: 70%;
-    position: absolute;
-    top: 60px; /* 距离页面顶部的距离 */
-    left: 70px; /* 距离页面左侧的距离 */
-}
-
-h2 {
-    text-align: center; /* 水平居中 */
-    position: absolute;
-    top: -122px; /* 适当调整为距离页面顶部 20px */
-    left: 62%; /* 水平居中的初始点 */
-    transform: translateX(-50%); /* 使元素真正水平居中 */
-    margin: 0; /* 移除默认的 margin */
-    font-size: 36px
-}
-
-
-
-.plan-description {
-    border: 2px solid #ccc; /* 設置邊框 */
-    padding: 15px;          /* 設置內邊距 */
-    margin-top: 200px;       /* 調整上方距離 */
-    border-radius: 10px;    /* 添加圓角 */
-    background-color: #333; /* 設置背景顏色 */
-    color: white;           /* 設置文字顏色 */
-    font-size: 18px;        /* 調整文字大小 */
-    line-height: 1.5;       /* 調整行高讓文字更易讀 */
-    max-width: 20%;         /* 調整框框寬度 */
-    float: right;
-    margin-right: 10px;         /* 讓框框在頁面居中 */
-    text-align: left;       /* 讓文字靠左對齊 */
+    margin-bottom: 20px; /* 增加圖片與影片之間的間距 */
 }
 
 #exerciseTable {
-    width: 100%;
     margin-top: 20px;
-    border-collapse: collapse;
-    background-color: #444;
-    color: white;
+    margin-bottom: 40px; /* 增加表格與影片的間距 */
+    position: relative;
+    z-index: 1; /* 確保表格層級低於其他區域 */
 }
 
-#exerciseTable th, #exerciseTable td {
-    border: 1px solid white;
-    padding: 10px;
-    text-align: center;
+#exerciseVideo {
+    margin-top: 20px; /* 影片與其他區域距離 */
+    position: relative;
+    z-index: 2; /* 確保影片層級高於表格 */
+    display: block;
+    margin: 0 auto; /* 影片水平居中 */
 }
 
-
-#exerciseTable th {
-    background-color: #303030;
-    font-weight: bold;
-}
-#chart-container {
-    width: 100%;
+#recordedExercisesSection {
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #333;
+    border-radius: 10px;
     max-width: 800px;
-    margin: 0 auto; /* 居中 */
+    z-index: 3; /* 提升層級，確保不會被其他元素覆蓋 */
 }
 
-#exerciseLineChart {
+#recordedExerciseTable {
     width: 100%;
-    height: auto;
+    margin-top: 15px;
 }
 
-
-
-
-
-
-
+.plan-description {
+    border: 2px solid #ccc;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 10px;
+    background-color: #333;
+    color: white;
+    font-size: 18px;
+    line-height: 1.5;
+    max-width: 20%;
+    float: right;
+    margin-right: 10px;
+    text-align: left;
+}

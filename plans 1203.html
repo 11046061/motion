@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,7 +26,6 @@
     </header>
     
     <main>
-        <!-- 今日訓練表格 -->
         <section class="schedule">
             <h2>今日訓練清單</h2>
             <table id="exerciseTable">
@@ -35,13 +33,10 @@
                     <th>動作</th>
                     <th>組數</th>
                     <th>次數</th>
+                    <th>操作</th>
                 </tr>
             </table>
-        </section>
-    
-        <!-- 動作記錄功能 -->
-        <section id="recordedExercisesSection">
-            <h3>動作紀錄</h3>
+            <button id="completePlanButton">完成訓練</button>
             <form id="exerciseForm">
                 <label for="exerciseSelect">選擇動作:</label>
                 <select id="exerciseSelect">
@@ -55,31 +50,35 @@
                 <input type="number" id="repsInput" min="1">
                 <button type="button" id="addExerciseButton">加入清單</button>
             </form>
-    
-            <table id="recordedExerciseTable">
-                <tr>
-                    <th>動作</th>
-                    <th>組數</th>
-                    <th>次數</th>
-                </tr>
-            </table>
+            
+            <div id="plans-container" class="schedule">
+                <table id="exerciseTable">
+                    <tr>
+                        <th>日期</th>
+                        <th>訓練計畫</th>
+                    </tr>
+                </table>
+                <div id="chart-container">
+                    <canvas id="exerciseLineChart"></canvas>
+                </div>
+            </div>
+                       
         </section>
+        
+        
+        <form id="queryForm">
+            <label for="queryDate">查詢日期:</label>
+            <input type="date" id="queryDate">
+            <button type="button" id="queryButton">查詢</button>
+        </form>
+        
     </main>
     
     
-    
-    
-    <div class="plan-description">
-        計畫是根據每天算出的BMI來抓取<br>
-        過輕、過重或適中的預訂計畫<br>
-        過輕計畫：BMI < 18.5<br>
-        適中計畫：BMI >= 18.5 且 <= 25<br>
-        過重計畫：BMI > 25<br>
-        一個動作一分鐘，中間休息三十秒。
-    </div>
-    
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+        <script src="/static/scripts/plans.js"></script>
+    <canvas id="exerciseChart" width="400" height="200"></canvas>
 
-    <script src="/static/scripts/plans.js"></script>
 </body>
 </html>
