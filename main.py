@@ -1066,9 +1066,10 @@ def get_exercise_stats():
         ''', (user_id,))
         stats = cursor.fetchall()
         cursor.close()
-        return jsonify({'stats': stats})  # 確保數據返回格式正確
+        return jsonify({'stats': stats})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 

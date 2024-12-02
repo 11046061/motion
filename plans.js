@@ -396,16 +396,62 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    let chart; // 儲存 Chart.js 圖表實例
+    let exerciseChart; // 儲存 Chart.js 圖表實例
     const exerciseTable = document.getElementById('exerciseTable');
-    const exerciseSelect = document.getElementById('exerciseSelect');
-    const setsInput = document.getElementById('setsInput');
-    const repsInput = document.getElementById('repsInput');
     const addExerciseButton = document.getElementById('addExerciseButton');
-    const queryButton = document.getElementById('queryButton'); // 獲取查詢按鈕
 
+    const chartCanvas = document.getElementById("exerciseChart");
 
-    // 初始化
+    if (!chartCanvas) {
+        console.error("Element #exerciseChart not found in the DOM.");
+        return;
+    }
+
+    const ctx = chartCanvas.getContext("2d");
+
+    // 向後端請求數據
+    fetch("/get-exercise-stats")
+        .then(response => {
+            if (!response.ok) throw new Error("後端回傳錯誤");
+            return response.json();
+        })
+        .then(data => {
+            if (!data.stats || !Array.isArray(data.stats)) {
+                throw new Error("返回的數據格式不正確");
+            }
+
+            const labels = data.stats.map(stat => stat.exercise_name);
+            const totalReps = data.stats.map(stat => stat.total_reps);
+
+            // 初始化圖表
+            new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "總訓練次數",
+                            data: totalReps,
+                            backgroundColor: "rgba(75, 192, 192, 0.2)",
+                            borderColor: "rgba(75, 192, 192, 1)",
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                        },
+                    },
+                },
+            });
+        })
+        .catch(error => console.error("加載訓練數據時出錯:", error));
+    
+    // 初始化事件監聽器與功能
     initEventListeners();
     fetchAndRenderExercises();
 
@@ -416,7 +462,50 @@ document.addEventListener('DOMContentLoaded', () => {
         if (addExerciseButton) {
             addExerciseButton.addEventListener('click', handleAddExercise);
         }
-        
+
+        const completePlanButton = document.getElementById('completePlanButton');
+        if (completePlanButton) {
+            completePlanButton.addEventListener('click', handleCompletePlan);
+        }
+
+        const queryButton = document.getElementById('queryButton');
+        if (queryButton) {
+            queryButton.addEventListener('click', handleQueryExercises);
+        }
+    }
+
+    /**
+     * 新增動作到清單
+     */
+    function handleAddExercise() {
+        const exerciseSelect = document.getElementById('exerciseSelect');
+        const setsInput = document.getElementById('setsInput');
+        const repsInput = document.getElementById('repsInput');
+    
+        const exerciseName = exerciseSelect.value;
+        const sets = parseInt(setsInput.value, 10);
+        const reps = parseInt(repsInput.value, 10);
+    
+        if (!exerciseName || isNaN(sets) || isNaN(reps) || sets <= 0 || reps <= 0) {
+            alert('請輸入有效的動作、組數和次數');
+            return;
+        }
+    
+        fetch('/add-exercise', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exercise_name: exerciseName, sets, reps }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('動作新增成功');
+                    fetchAndRenderExercises();
+                } else {
+                    alert(`新增失敗: ${data.error || '未知錯誤'}`);
+                }
+            })
+            .catch(error => console.error('新增動作時發生錯誤:', error));
     }
 
     /**
@@ -434,13 +523,9 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => console.error('獲取動作列表時發生錯誤:', error));
     }
-    
-    
-    
 
     /**
      * 渲染動作表格
-     * @param {Array} exercises - 從後端獲取的動作資料
      */
     function renderExerciseTable(exercises) {
         const table = document.getElementById('recordedExerciseTable');
@@ -472,314 +557,120 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-    
+
+    /**
+     * 刪除動作
+     */
     function handleDeleteExercise(exerciseId) {
         fetch(`/delete-exercise/${exerciseId}`, { method: 'DELETE' })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     alert('刪除成功');
-                    fetchAndRenderExercises(); // 刪除後重新渲染
+                    fetchAndRenderExercises();
                 } else {
                     alert('刪除失敗');
                 }
             })
             .catch(error => console.error('刪除動作時發生錯誤:', error));
     }
-    
-    
-
 
     /**
-     * 新增動作到清單
+     * 完成計劃
      */
-    function handleAddExercise() {
-        const exerciseSelect = document.getElementById('exerciseSelect');
-        const setsInput = document.getElementById('setsInput');
-        const repsInput = document.getElementById('repsInput');
-    
-        const exerciseName = exerciseSelect.value;
-        const sets = parseInt(setsInput.value, 10);
-        const reps = parseInt(repsInput.value, 10);
-    
-        // 檢查輸入的有效性
-        if (!exerciseName || isNaN(sets) || isNaN(reps) || sets <= 0 || reps <= 0) {
-            alert('請輸入有效的動作、組數和次數');
-            return;
-        }
-    
-        fetch('/add-exercise', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exercise_name: exerciseName, sets, reps }),
-        })
+    function handleCompletePlan() {
+        fetch('/complete-exercises', { method: 'POST' })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('動作新增成功');
-                    fetchAndRenderExercises(); // 從後端重新獲取並渲染表格
+                    alert('訓練完成！');
+                    updateMultiDayChart(data.chartData);
+                    fetchAndRenderExercises();
                 } else {
-                    alert(`新增失敗: ${data.error || '未知錯誤'}`);
+                    alert(`操作失敗：${data.error}`);
                 }
             })
-            .catch(error => console.error('新增動作時發生錯誤:', error));
+            .catch(error => console.error('操作失敗:', error));
     }
-    
 
     /**
-     * 渲染折線圖
-     * @param {Array} exercises - 動作資料
-     * @param {number} weightToday - 今日體重
+     * 查詢動作數據
      */
-    function renderExerciseChart(exercises) {
+    function handleQueryExercises() {
+        const queryDate = document.getElementById('queryDate').value;
+        if (!queryDate) {
+            console.error('請選擇日期');
+            return;
+        }
+
+        fetch('/query-exercises', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: queryDate }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.exercises) {
+                    renderExerciseTable(data.exercises);
+                    updateMultiDayChart(data);
+                } else {
+                    console.warn('查詢結果中沒有數據');
+                }
+            })
+            .catch(error => console.error('查詢資料時發生錯誤:', error));
+    }
+
+    /**
+     * 更新折線圖
+     */
+    function updateMultiDayChart(data) {
         const chartCanvas = document.getElementById('exerciseLineChart');
         const ctx = chartCanvas.getContext('2d');
-    
-        // 按日期分組
-        const groupedData = exercises.reduce((acc, curr) => {
-            if (!acc[curr.date]) acc[curr.date] = {};
-            if (!acc[curr.date][curr.exercise_name]) acc[curr.date][curr.exercise_name] = 0;
-            acc[curr.date][curr.exercise_name] += curr.sets * curr.reps; // 訓練總量
-            return acc;
-        }, {});
-    
-        const labels = Object.keys(groupedData); // 日期為橫軸
-        const exerciseNames = [...new Set(exercises.map(ex => ex.exercise_name))]; // 動作名稱列表
-        const datasets = exerciseNames.map(exercise => ({
-            label: exercise,
-            data: labels.map(date => groupedData[date][exercise] || 0),
-            borderColor: getRandomColor(),
-            fill: false,
-            borderWidth: 2,
-            tension: 0.3,
-        }));
-    
-        // 如果圖表實例已存在，銷毀舊圖表
-        if (window.exerciseChart && typeof window.exerciseChart.destroy === 'function') {
-            window.exerciseChart.destroy();
+
+        if (exerciseChart) {
+            exerciseChart.destroy();
         }
-    
-        // 初始化並渲染新的圖表
-        window.exerciseChart = new Chart(ctx, {
+
+        data.datasets.forEach(dataset => {
+            dataset.label = translateExerciseName(dataset.label);
+        });
+
+        exerciseChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
-                datasets: datasets,
+                labels: data.labels,
+                datasets: data.datasets,
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
                     x: {
-                        type: 'category',
-                        title: {
-                            display: true,
-                            text: '日期',
-                        },
+                        title: { display: true, text: '日期' },
                     },
                     y: {
                         beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: '總訓練量 (公斤)',
-                        },
+                        title: { display: true, text: '總訓練量（次數）' },
                     },
                 },
                 plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                    },
+                    legend: { position: 'top' },
                 },
             },
         });
     }
-    
-    // 生成隨機顏色
-    function getRandomColor() {
-        return `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`;
+
+    /**
+     * 翻譯動作名稱
+     */
+    function translateExerciseName(name) {
+        const translations = {
+            "pushup": "伏地挺身",
+            "plank": "平板支撐",
+            "squat": "深蹲",
+        };
+        return translations[name] || name;
     }
-  
-    
 });
-
-document.getElementById('completePlanButton').addEventListener('click', function () {
-    fetch('/complete-exercises', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('訓練完成！');
-                // 更新圖表
-                updateMultiDayChart(data.chartData); // 更正為正確的函數名稱
-
-                // 查詢今日的清單並刷新表格
-                fetch('/query-exercises?date=' + new Date().toISOString().split('T')[0])
-                    .then(res => res.json())
-                    .then(queryData => {
-                        if (queryData.success) {
-                            renderExerciseTable(queryData.exercises);
-                        }
-                    });
-            } else {
-                alert('操作失敗：' + data.error);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-});
-
-
-// 渲染表格
-function renderExerciseTable(groupedData) {
-    const table = document.getElementById('exerciseTable');
-    while (table.rows.length > 1) {
-        table.deleteRow(1);
-    }
-
-    Object.entries(groupedData).forEach(([date, exercises]) => {
-        exercises.forEach(exercise => {
-            const row = table.insertRow();
-            row.innerHTML = `
-                <td>${exercise.name}</td>
-                <td>${date}</td>
-                <td>${exercise.total_reps}</td>
-            `;
-        });
-    });
-}
-
-
-
-
-
-document.getElementById('queryButton').addEventListener('click', function () {
-    const queryDate = document.getElementById('queryDate').value;
-    if (!queryDate) {
-        console.error('請選擇日期');
-        return;
-    }
-
-    fetch('/query-exercises', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: queryDate })
-    })
-        .then(response => {
-            if (!response.ok) throw new Error('伺服器返回錯誤');
-            return response.json();
-        })
-        .then(data => {
-            if (data.error) {
-                console.error('伺服器錯誤:', data.error);
-                return;
-            }
-
-            // 更新圖表
-            updateMultiDayChart(data);
-
-            // 確保 exercises 存在並傳遞給表格渲染函數
-            if (data.exercises && Array.isArray(data.exercises)) {
-                renderExerciseTable(data.exercises);
-            } else {
-                console.warn('查詢結果中沒有表格數據');
-                renderExerciseTable([]); // 傳遞空數組以清空表格
-            }
-        })
-        .catch(error => console.error('查詢資料時發生錯誤:', error));
-});
-
-
-
-
-
-
-
-
-
-function deleteExercise(exerciseId) {
-    fetch(`/delete-exercise/${exerciseId}`, { method: 'DELETE' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('訓練已刪除！');
-                document.getElementById('queryButton').click(); // 重新查詢數據
-            } else {
-                alert('刪除失敗！');
-            }
-        })
-        .catch(error => console.error('Error:', error));
-}
-
-let exerciseChart; // 全域變數，儲存圖表實例
-
-function resetChartCanvas() {
-    const chartContainer = document.getElementById('chart-container');
-    const oldCanvas = document.getElementById('exerciseLineChart');
-    if (oldCanvas) {
-        chartContainer.removeChild(oldCanvas); // 刪除舊的 canvas
-    }
-    const newCanvas = document.createElement('canvas');
-    newCanvas.id = 'exerciseLineChart';
-    chartContainer.appendChild(newCanvas);
-}
-
-function translateExerciseName(name) {
-    const translations = {
-        "pushup": "伏地挺身",
-        "plank": "平板支撐",
-        "squat": "深蹲"
-    };
-    return translations[name] || name; // 如果無法匹配，保留原文
-}
-
-function updateMultiDayChart(data) {
-    const chartCanvas = document.getElementById('exerciseLineChart');
-    const ctx = chartCanvas.getContext('2d');
-
-    // 銷毀舊圖表
-    if (window.exerciseChart) {
-        window.exerciseChart.destroy();
-    }
-
-    // 更新數據集的中文標籤
-    data.datasets.forEach(dataset => {
-        dataset.label = translateExerciseName(dataset.label); // 將英文轉為中文
-    });
-
-    // 創建新圖表
-    window.exerciseChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.labels, // 日期
-            datasets: data.datasets // 動作數據集
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: { display: true, text: '日期' },
-                },
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: '總訓練量（公斤）' },
-                },
-            },
-            plugins: {
-                legend: { position: 'top' },
-            },
-        },
-    });
-}
-
-
-
-
-
-function getRandomColor() {
-    const r = Math.floor(Math.random() * 255);
-    const g = Math.floor(Math.random() * 255);
-    const b = Math.floor(Math.random() * 255);
-    return `rgba(${r}, ${g}, ${b}, 0.6)`;
-}
-
 
 
