@@ -198,11 +198,18 @@ body img:not(.logo img) {
 #exerciseChartSection {
     margin: 20px auto;
     padding: 20px;
-    background-color: #444;
+    background-color: #ffffff; /* 白色背景 */
     border-radius: 10px;
+    border: 1px solid #ccc; /* 灰色邊框 */
     max-width: 800px;
     text-align: center;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* 添加陰影效果 */
 }
+
+canvas {
+    background-color: #ffffff; /* 白色背景 */
+}
+
 
 #exerciseChart {
     max-width: 100%;

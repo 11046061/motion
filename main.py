@@ -1059,16 +1059,17 @@ def get_exercise_stats():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
         cursor.execute('''
-            SELECT exercise_name, SUM(sets * reps) AS total_reps
+            SELECT DATE_FORMAT(date, "%Y-%m-%d") AS date, exercise_name, SUM(sets * reps) AS total_reps
             FROM user_exercises
             WHERE user_id = %s
-            GROUP BY exercise_name
+            GROUP BY date, exercise_name
         ''', (user_id,))
         stats = cursor.fetchall()
         cursor.close()
         return jsonify({'stats': stats})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 

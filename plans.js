@@ -345,13 +345,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     const exerciseName = document.getElementById('exerciseName');
                     exerciseName.textContent = nextExerciseObj.exercise;
     
-
-    
                     // 更新影片
-                    const videoSource = document.getElementById('videoSource');
-                    videoSource.src = `/static/videos/${nextExerciseObj.video}`;
                     const video = document.getElementById('exerciseVideo');
-                    video.load();  // 加載新影片
+                    const videoSource = video.querySelector('source'); // 找到 <video> 裡的 <source>
+                    if (videoSource) {
+                        videoSource.src = `/static/videos/${nextExerciseObj.video}`;
+                        video.load();  // 加載新影片
+                    } else {
+                        console.error("未找到 <source> 元素，無法更新影片");
+                    }
     
                     // 開始下一個動作的計時
                     startTimer(dayOfWeek, 60);  // 開始下一個動作的計時，從 60 秒開始
@@ -361,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
             completeWorkout();  // 所有動作完成後的處理
         }
     }
+    
     
     
     
@@ -394,9 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-
 document.addEventListener('DOMContentLoaded', () => {
-    let exerciseChart; // 儲存 Chart.js 圖表實例
     const chartCanvas = document.getElementById("exerciseChart");
 
     if (!chartCanvas) {
@@ -408,53 +409,110 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 向後端請求數據
     fetch("/get-exercise-stats")
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            if (!data.stats || !Array.isArray(data.stats)) {
-                throw new Error("Unexpected data format. Expected an array under 'stats'.");
-            }
+    .then(response => {
+        if (!response.ok) throw new Error("後端回傳錯誤");
+        return response.json();
+    })
+    .then(data => {
+        if (!data.stats || !Array.isArray(data.stats)) {
+            throw new Error("返回的數據格式不正確");
+        }
 
-            const labels = data.stats.map(stat => stat.exercise_name);
-            const totalReps = data.stats.map(stat => stat.total_reps);
+        // 翻譯動作名稱
+        const translations = {
+            "pushup": "伏地挺身",
+            "squat": "深蹲",
+            "plank": "平板支撐"
+        };
 
-            // 檢查是否有數據
-            if (labels.length === 0 || totalReps.length === 0) {
-                console.warn("No data available to display.");
-                return;
-            }
+        // 獲取所有日期和動作
+        const labels = [...new Set(data.stats.map(stat => stat.date))];
+        const exercises = [...new Set(data.stats.map(stat => translations[stat.exercise_name] || stat.exercise_name))];
 
-            // 初始化圖表
-            exerciseChart = new Chart(ctx, {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: "總訓練次數",
-                            data: totalReps,
-                            backgroundColor: "rgba(75, 192, 192, 0.2)",
-                            borderColor: "rgba(75, 192, 192, 1)",
-                            borderWidth: 1,
-                        },
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                        },
-                    },
-                },
-            });
-        })
-        .catch(error => {
-            console.error("Error loading exercise data:", error);
+        // 為每個動作生成數據集
+        const datasets = exercises.map(exercise => {
+            return {
+                label: exercise,
+                data: labels.map(date => {
+                    const stat = data.stats.find(s => s.date === date && translations[s.exercise_name] === exercise);
+                    return stat ? stat.total_reps : 0;
+                }),
+                borderColor: getRandomColor(),
+                tension: 0.2, // 平滑折線
+                fill: false,
+            };
         });
+
+        // 初始化圖表
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: datasets,
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: "top",
+                        labels: {
+                            color: "#333", // 圖例文字顏色
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: "訓練量圖表",
+                        color: "#333", // 標題文字顏色
+                        font: {
+                            size: 18, // 標題字體大小
+                            weight: "bold" // 標題字體加粗
+                        },
+                        padding: {
+                            top: 10, // 調整與上方的距離
+                            bottom: 10 // 調整與圖表的距離
+                        },
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: "日期",
+                            color: "#333", // X軸標題文字顏色
+                        },
+                        ticks: {
+                            color: "#333", // X軸標籤文字顏色
+                        },
+                        grid: {
+                            color: "#e0e0e0" // X軸網格線顏色
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: "訓練次數",
+                            color: "#333", // Y軸標題文字顏色
+                        },
+                        ticks: {
+                            color: "#333", // Y軸標籤文字顏色
+                        },
+                        grid: {
+                            color: "#e0e0e0" // Y軸網格線顏色
+                        }
+                    }
+                }
+            }
+        });
+        
+    })
+    .catch(error => console.error("加載訓練數據時出錯:", error));
+
+// 隨機顏色生成器
+function getRandomColor() {
+    return `rgba(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, 0.8)`;
+}
+
     
     // 初始化事件監聽器與功能
     initEventListeners();
