@@ -397,13 +397,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
 document.addEventListener('DOMContentLoaded', () => {
     let exerciseChart; // 儲存 Chart.js 圖表實例
-    const exerciseTable = document.getElementById('exerciseTable');
-    const addExerciseButton = document.getElementById('addExerciseButton');
-
     const chartCanvas = document.getElementById("exerciseChart");
 
     if (!chartCanvas) {
-        console.error("Element #exerciseChart not found in the DOM.");
+        console.error("Canvas element with ID #exerciseChart not found.");
         return;
     }
 
@@ -412,19 +409,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // 向後端請求數據
     fetch("/get-exercise-stats")
         .then(response => {
-            if (!response.ok) throw new Error("後端回傳錯誤");
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
             return response.json();
         })
         .then(data => {
             if (!data.stats || !Array.isArray(data.stats)) {
-                throw new Error("返回的數據格式不正確");
+                throw new Error("Unexpected data format. Expected an array under 'stats'.");
             }
 
             const labels = data.stats.map(stat => stat.exercise_name);
             const totalReps = data.stats.map(stat => stat.total_reps);
 
+            // 檢查是否有數據
+            if (labels.length === 0 || totalReps.length === 0) {
+                console.warn("No data available to display.");
+                return;
+            }
+
             // 初始化圖表
-            new Chart(ctx, {
+            exerciseChart = new Chart(ctx, {
                 type: "bar",
                 data: {
                     labels: labels,
@@ -449,7 +452,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
             });
         })
-        .catch(error => console.error("加載訓練數據時出錯:", error));
+        .catch(error => {
+            console.error("Error loading exercise data:", error);
+        });
     
     // 初始化事件監聽器與功能
     initEventListeners();
