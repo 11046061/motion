@@ -40,44 +40,55 @@ document.addEventListener('DOMContentLoaded', function () {
         
         
 
-    // 加載用戶資料並檢查當天體重
-    function loadProfileData() {
-        const dayOfWeekEnglish = today.toLocaleString('en-US', { weekday: 'long' });
-        const dayOfWeekMap = {
-            'Monday': '星期一',
-            'Tuesday': '星期二',
-            'Wednesday': '星期三',
-            'Thursday': '星期四',
-            'Friday': '星期五',
-            'Saturday': '星期六',
-            'Sunday': '星期日'
-        };
-        const dayOfWeek = dayOfWeekMap[dayOfWeekEnglish];
+    // 加載使用者資料，判斷 BMI 與 WHR
+function loadProfileData() {
+    const dayOfWeekEnglish = today.toLocaleString('en-US', { weekday: 'long' });
+    const dayOfWeekMap = {
+        'Monday': '星期一',
+        'Tuesday': '星期二',
+        'Wednesday': '星期三',
+        'Thursday': '星期四',
+        'Friday': '星期五',
+        'Saturday': '星期六',
+        'Sunday': '星期日'
+    };
+    const dayOfWeek = dayOfWeekMap[dayOfWeekEnglish];
 
-        fetch('/get-profile-data')
-            .then(response => response.json())
-            .then(data => {
-                const height = data.height;
-                const weight = data.weight_today;
+    fetch('/get-profile-data')
+        .then(response => response.json())
+        .then(data => {
+            const { height, weight_today: weight, waist, hip } = data;
 
-                if (!weight || !height) {
-                    exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入今日體重</td></tr>`;
-                } else {
-                    const bodyType = calculateBMI(height, weight);
-                    loadExercisePlan(bodyType, dayOfWeek);
-                }
-            })
-            .catch(error => {
-                console.error("獲取用戶數據時出錯:", error);
-                exerciseTable.innerHTML = `<tr><td>未能加載健身計劃，請稍後再試</td></tr>`;
-            });
+            if (!height || !weight || !waist || !hip) {
+                exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入完整的今日數據（包含腰圍與臀圍）</td></tr>`;
+            } else {
+                const bodyType = calculateBodyType(height, weight, waist, hip);
+                loadExercisePlan(bodyType, dayOfWeek);
+            }
+        })
+        .catch(error => {
+            console.error("獲取使用者資料時發生錯誤:", error);
+            exerciseTable.innerHTML = `<tr><td>無法加載健身計畫，請稍後再試。</td></tr>`;
+        });
+}
+
+// 計算 BMI 和 WHR 來判斷體型
+function calculateBodyType(height, weight, waist, hip) {
+    const bmi = weight / ((height / 100) ** 2);
+    const whr = waist / hip;
+
+    if (bmi < 18.5 && whr < 0.9) {
+        return 'thin'; // 過輕計畫
+    } else if (bmi >= 18.5 && bmi <= 25 && whr < 0.9) {
+        return 'average'; // 適中計畫
+    } else if (bmi > 25 || whr > 0.9) {
+        return 'overweight'; // 過重計畫
+    } else {
+        console.warn("BMI 與 WHR 的組合無法識別，預設為適中計畫。");
+        return 'average';
     }
+}
 
-    // 計算 BMI
-    function calculateBMI(height, weight) {
-        const bmi = weight / ((height / 100) ** 2);
-        return bmi < 18.5 ? 'thin' : (bmi >= 18.5 && bmi < 25 ? 'average' : 'overweight');
-    }
 
     // 加載對應的健身計劃
     function loadExercisePlan(bodyType, dayOfWeek) {
@@ -491,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     y: {
                         title: {
                             display: true,
-                            text: "訓練次數",
+                            text: "訓練量",
                             color: "#333", // Y軸標題文字顏色
                         },
                         ticks: {

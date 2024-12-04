@@ -963,25 +963,34 @@ def complete_plan():
 @app.route('/get-profile-data', methods=['GET'])
 def get_profile_data():
     try:
+        # 獲取使用者 ID
         user_id = session.get('id')
         if not user_id:
-            return jsonify({'error': 'User not logged in'}), 401
+            return jsonify({'error': '用戶未登入'}), 401
 
+        # 資料庫連線
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
         
-        # 獲取身高（持久）和當天體重
-        cursor.execute('SELECT height, weight_today FROM user_fitness_data WHERE user_id = %s ORDER BY date DESC LIMIT 1', (user_id,))
+        # 查詢身高（持久）、當天體重、腰圍與臀圍數據
+        cursor.execute('''
+            SELECT height, weight_today, waist, hip 
+            FROM user_fitness_data 
+            WHERE user_id = %s AND date = CURDATE()
+        ''', (user_id,))
         profile_data = cursor.fetchone()
+
         cursor.close()
 
+        # 如果找到數據，返回結果
         if profile_data:
             return jsonify(profile_data)
         else:
-            return jsonify({'error': 'No data found'}), 404
+            return jsonify({'error': '今日尚未輸入完整數據'}), 404
     except Exception as e:
-        print(f"Error getting user profile data: {str(e)}")
-        return jsonify({'error': 'Failed to get profile data'}), 500
+        print(f"獲取使用者資料時發生錯誤: {str(e)}")
+        return jsonify({'error': '無法獲取使用者資料'}), 500
+
 
 @app.route('/update-profile', methods=['POST'])
 def update_profile():
