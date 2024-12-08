@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             if (data.height) heightInput.value = data.height;
             if (data.weight_today) weightInput.value = data.weight_today;
+            if (data.waist) document.getElementById('waist').value = data.waist;
+            if (data.hip) document.getElementById('hip').value = data.hip;
             loadBMIHistory();
             loadWeightHistory();
             updateTargetWeight();
@@ -29,44 +31,51 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 儲存按鈕事件
     saveButton.addEventListener('click', function (event) {
-        event.preventDefault(); // 防止表單提交後刷新頁面
+        event.preventDefault();
     
         const height = parseFloat(heightInput.value);
         const weight_today = parseFloat(weightInput.value);
         const waist = parseFloat(document.getElementById('waist').value);
         const hip = parseFloat(document.getElementById('hip').value);
     
-        // 檢查輸入是否完整
         if (!height || !weight_today || !waist || !hip) {
             Swal.fire('錯誤', '請正確輸入所有數據', 'error');
             return;
         }
     
-        // 發送 POST 請求到後端
         fetch('/update-profile', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ height, weight_today, waist, hip }),
         })
-            .then((response) => response.json())
-            .then((data) => {
+            .then(response => response.json())
+            .then(data => {
                 if (data.success) {
                     Swal.fire('成功', '資料已更新', 'success');
-                    // 即時更新所有相關圖表
-                    fetchAndRenderWaistHipChart(); // 更新腰臀比圖表
-                    loadBMIHistory(); // 更新 BMI 圖表
-                    loadWeightHistory(); // 更新體重歷史圖表
-                    updateTargetWeight(); // 更新目標體重顯示
+                    // 重新加載數據
+                    fetch('/get-profile-data')
+                        .then(response => response.json())
+                        .then(updatedData => {
+                            if (updatedData.height) heightInput.value = updatedData.height;
+                            if (updatedData.weight_today) weightInput.value = updatedData.weight_today;
+                            if (updatedData.waist) document.getElementById('waist').value = updatedData.waist;
+                            if (updatedData.hip) document.getElementById('hip').value = updatedData.hip;
+    
+                            fetchAndRenderWaistHipChart(); // 更新腰臀比圖表
+                            loadBMIHistory(); // 更新 BMI 圖表
+                            loadWeightHistory(); // 更新體重圖表
+                            updateTargetWeight(); // 更新目標體重
+                        });
                 } else {
                     Swal.fire('錯誤', data.error || '資料更新失敗', 'error');
                 }
             })
-            .catch((error) => {
+            .catch(error => {
                 Swal.fire('錯誤', '無法更新資料，請稍後再試', 'error');
             });
     });
+    
+    
     
     
 

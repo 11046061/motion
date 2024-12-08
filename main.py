@@ -4,15 +4,21 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from wordcloud import WordCloud
 from dotenv import load_dotenv  # 確保正確導入 load_dotenv
-
-import os
+from opencc import OpenCC
+from flask import send_file
+from datetime import datetime
+import opencc
+from worcloudtest import generate_wordcloud_and_ai_suggestions
 import logging
-import datetime
+converter = opencc.OpenCC('s2t')
+import io
+import logging
+import os
 import openai
-import openapi
 import urllib.parse
-import json
+import jieba
 import random
+from PIL import Image
 
 # 初始化 Flask 應用
 app = Flask(__name__, static_folder='static')
@@ -34,35 +40,127 @@ def get_db_connection():
         password='figs0630',
         database='healthy'
     )
+cc = OpenCC('s2t')  # 簡轉繁
+from flask import send_file
 
-# 查詢與 AI 聊天
+# 生成文字雲
+def generate_wordcloud(member_id):
+    try:
+        # 從資料庫提取回答
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "SELECT answer FROM questions WHERE member_id = %s"
+        cursor.execute(query, (member_id,))
+        responses = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        if not responses:
+            logging.warning(f"用戶 {member_id} 無可用數據生成文字雲。")
+            return None
+
+        # 合併回答文本並轉為繁體中文
+        text = " ".join([resp[0] for resp in responses])
+        text = cc.convert(text)
+
+        # 生成文字雲
+        wordcloud_dir = 'static/wordclouds'
+        os.makedirs(wordcloud_dir, exist_ok=True)
+        wordcloud = WordCloud(
+            font_path='C:/Windows/Fonts/MSJH.TTC',
+            background_color='white',
+            width=800,
+            height=400
+        ).generate(text)
+        image_path = f'{wordcloud_dir}/user_{member_id}_wordcloud.png'
+        wordcloud.to_file(image_path)
+
+        return image_path
+    except Exception as e:
+        logging.error(f"生成文字雲失敗: {e}")
+        return None
+
+# 呼叫 OpenAI API 並儲存回答
 def get_open_ai_api_chat_response(member_id, prompt):
-    if len(prompt) > 20:
-        return "問題太長，請限制在20個字以內。"
-
     messages = [
-        {"role": "system", "content": "You are an expert fitness and nutrition assistant. You only answer questions related to sports, exercise, fitness, and dietary advice. If the question is not related, please ask the user to ask a question about sports, exercise, or dietary advice."},
+        {"role": "system", "content": "You are an expert fitness and nutrition assistant."},
         {"role": "user", "content": prompt}
     ]
 
     try:
+        # 呼叫 OpenAI API
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages
         )
-        ai_answer = response.choices[0].message['content'].replace("\n", "<br>")
+        ai_answer = response['choices'][0]['message']['content']
+        ai_answer_traditional = cc.convert(ai_answer)
 
-        # 儲存提問與回答到資料庫
-        with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                query = "INSERT INTO questions (member_id, question, answer, asked_at) VALUES (%s, %s, %s, NOW())"
-                cursor.execute(query, (member_id, prompt, ai_answer))
-                conn.commit()
+        # 保存提問與回答到資料庫
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "INSERT INTO questions (member_id, question, answer, asked_at) VALUES (%s, %s, %s, NOW())"
+        cursor.execute(query, (member_id, prompt, ai_answer_traditional))
+        conn.commit()
+        cursor.close()
+        conn.close()
 
-        return ai_answer
+        # 更新文字雲
+        generate_wordcloud(member_id)
+
+        return ai_answer_traditional
     except Exception as e:
-        logging.error(f"調用 OpenAI API 時出錯：{e}")
-        return f"An error occurred: {str(e)}"
+        logging.error(f"OpenAI API 呼叫失敗: {e}")
+        return "系統發生錯誤，請稍後再試。"
+
+@app.route('/search', methods=['GET'])
+def search():
+    member_id = session.get('id')
+    if not member_id:
+        return redirect(url_for('login'))
+
+    # 頁面加載時生成文字雲
+    generate_wordcloud(member_id)
+
+    # 獲取歷史記錄
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT question, answer, asked_at FROM questions WHERE member_id = %s ORDER BY asked_at DESC"
+    cursor.execute(query, (member_id,))
+    history = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('search.html', history=history, user_id=member_id)
+
+@app.route('/generate-wordcloud/<int:member_id>', methods=['GET'])
+def generate_wordcloud_api(member_id):
+    """
+    調用文字雲與 AI 建議的生成功能
+    """
+    try:
+        wordcloud_path, ai_suggestion = generate_wordcloud_and_ai_suggestions(member_id)
+        if not wordcloud_path:
+            return jsonify({'error': ai_suggestion}), 500
+        return jsonify({'wordcloud_path': wordcloud_path, 'ai_suggestion': ai_suggestion})
+    except Exception as e:
+        logging.error(f"生成文字雲或 AI 建議時發生錯誤: {e}")
+        return jsonify({'error': '伺服器發生錯誤，請稍後再試。'}), 500
+
+
+@app.route('/get-wordcloud', methods=['GET'])
+def get_wordcloud():
+    member_id = request.args.get('member_id', type=int)
+    if not member_id:
+        return jsonify({"error": "Member ID is missing"}), 400
+    try:
+        wordcloud_path = f'static/wordclouds/user_{member_id}_wordcloud.png'
+        if not os.path.exists(wordcloud_path):
+            return jsonify({"error": "文字雲未找到"}), 404
+        return send_file(wordcloud_path, mimetype='image/png')
+    except Exception as e:
+        logging.error(f"無法生成文字雲: {e}")
+        return jsonify({"error": "無法獲取文字雲"}), 500
 
 # 生成並保存個人文字雲到資料庫
 def generate_wordcloud_and_save_to_db(member_id):
@@ -116,44 +214,27 @@ def generate_wordcloud_and_save_to_db(member_id):
 # 搜尋與提問路由
 @app.route('/ask', methods=['POST'])
 def ask():
+    member_id = session.get('id')  # 檢查用戶是否登入
+    if not member_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    if not data or 'prompt' not in data:
+        return jsonify({"error": "Missing prompt"}), 400
+
+    prompt = data['prompt']
     try:
-        data = request.get_json()
-        member_id = data.get('member_id')
-        prompt = data.get('prompt')
-
-        if not member_id or not prompt:
-            return jsonify({"error": "缺少必要的參數"}), 400
-
-        response = get_open_ai_api_chat_response(member_id, prompt)
-        return jsonify({"ai_answer": response})
-
+        ai_answer = get_open_ai_api_chat_response(member_id, prompt)
+        return jsonify({"ai_answer": ai_answer}), 200
     except Exception as e:
-        logging.error(f"處理 '/ask' 路由請求時出現錯誤：{str(e)}")
-        return jsonify({"error": "伺服器錯誤"}), 500
+        logging.error(f"Error in ask route: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route('/wordcloud/<int:user_id>')
-def get_wordcloud(user_id):
-    try:
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
-        query = "SELECT wordcloud_image_data FROM user_wordclouds WHERE user_id = %s"
-        cursor.execute(query, (user_id,))
-        result = cursor.fetchone()
-
-        if result and result[0]:
-            img_byte_arr = io.BytesIO(result[0])
-            return send_file(img_byte_arr, mimetype='image/png')
-
-        return "文字雲未找到", 404
-    except mysql.connector.Error as err:
-        logging.error(f"資料庫錯誤: {err}")
-        return "伺服器錯誤", 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+@app.route('/example')
+def example():
+    current_time = datetime.now()
+    return render_template('example.html', time=current_time)
 
 
 # 確保uploads目錄存在
@@ -797,39 +878,7 @@ def format_time(time):
 def plans():
     return render_template('plans.html')
 
-#搜尋
-@app.route('/search', methods=['POST', 'GET'])
-def search():
-    member_id = session.get('id')
-    
-    if request.method == 'POST':
-        data = request.get_json()
-        if not data or 'prompt' not in data:
-            return jsonify({"error": "No prompt provided"}), 400
 
-        prompt = data['prompt']
-        try:
-            ai_answer = openapi.get_open_ai_api_chat_response(member_id, prompt)
-            # 移除答案中的所有 <br> 標籤
-            cleaned_answer = ai_answer.replace('<br>', ' ')
-            return jsonify({'ai_answer': cleaned_answer})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-    # 如果是 GET 請求，載入歷史記錄
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                query = "SELECT question, answer, asked_at FROM questions WHERE member_id = %s ORDER BY asked_at DESC"
-                cursor.execute(query, (member_id,))
-                history_data = cursor.fetchall()
-                 # 移除歷史記錄中答案的 <br> 標籤
-                cleaned_history = [(q, a.replace('<br>', ' '), at) for q, a, at in history_data]
-                
-        return render_template('search.html', history=cleaned_history)
-    except mysql.connector.Error as e:
-        flash(str(e), 'error')
-        return redirect(url_for('homepage'))
 
 @app.route('/profile')
 def profile():
@@ -963,33 +1012,59 @@ def complete_plan():
 @app.route('/get-profile-data', methods=['GET'])
 def get_profile_data():
     try:
-        # 獲取使用者 ID
         user_id = session.get('id')
         if not user_id:
             return jsonify({'error': '用戶未登入'}), 401
 
-        # 資料庫連線
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
-        
-        # 查詢身高（持久）、當天體重、腰圍與臀圍數據
+
+        # 查詢當天數據
         cursor.execute('''
-            SELECT height, weight_today, waist, hip 
+            SELECT height, weight_today, waist, hip, waist_hip_ratio 
             FROM user_fitness_data 
             WHERE user_id = %s AND date = CURDATE()
         ''', (user_id,))
         profile_data = cursor.fetchone()
+        
+        # 清空未讀結果集
+        cursor.fetchall()
+
+        if not profile_data:
+            # 若當天數據不存在，嘗試從前一天繼承
+            cursor.execute('''
+                SELECT height, weight_today, waist, hip, waist_hip_ratio 
+                FROM user_fitness_data 
+                WHERE user_id = %s AND date = (CURDATE() - INTERVAL 1 DAY)
+            ''', (user_id,))
+            profile_data = cursor.fetchone()
+            
+            # 清空未讀結果集
+            cursor.fetchall()
+
+            if profile_data:
+                # 自動插入當天數據
+                cursor.execute('''
+                    INSERT INTO user_fitness_data (user_id, height, weight_today, waist, hip, waist_hip_ratio, date)
+                    VALUES (%s, %s, %s, %s, %s, %s, CURDATE())
+                ''', (user_id, profile_data['height'], profile_data['weight_today'], 
+                      profile_data['waist'], profile_data['hip'], profile_data['waist_hip_ratio']))
+                connection.commit()
 
         cursor.close()
 
-        # 如果找到數據，返回結果
         if profile_data:
             return jsonify(profile_data)
         else:
-            return jsonify({'error': '今日尚未輸入完整數據'}), 404
+            return jsonify({'error': '無法獲取個人數據'}), 404
+    except mysql.connector.Error as db_error:
+        app.logger.error(f"資料庫錯誤: {db_error}")
+        return jsonify({'error': '資料庫發生錯誤'}), 500
     except Exception as e:
-        print(f"獲取使用者資料時發生錯誤: {str(e)}")
-        return jsonify({'error': '無法獲取使用者資料'}), 500
+        app.logger.error(f"其他錯誤: {e}")
+        return jsonify({'error': '伺服器內部錯誤'}), 500
+
+
 
 
 @app.route('/update-profile', methods=['POST'])
@@ -1002,39 +1077,41 @@ def update_profile():
         data = request.get_json()
         height = data.get('height')
         weight_today = data.get('weight_today')
-        waist = data.get('waist')  # 修正此行，定義 waist
+        waist = data.get('waist')
         hip = data.get('hip')
 
-        if not height or not weight_today or not waist or not hip:
+        if not all([height, weight_today, waist, hip]):
             return jsonify({'error': 'Invalid data provided'}), 400
 
         # 計算腰臀比
-        waist_hip_ratio = round(waist / hip, 2) if waist and hip else None
+        waist_hip_ratio = round(waist / hip, 2)
 
         connection = get_db_connection()
         cursor = connection.cursor()
 
-        # 插入或更新用戶的資料
-        cursor.execute('SELECT id FROM user_fitness_data WHERE user_id = %s AND date = CURDATE()', (user_id,))
-        result = cursor.fetchone()
-
-        if result:
-            cursor.execute('''
-                UPDATE user_fitness_data 
-                SET weight_today = %s, height = %s, waist = %s, hip = %s, waist_hip_ratio = %s
-                WHERE user_id = %s AND date = CURDATE()
-            ''', (weight_today, height, waist, hip, waist_hip_ratio, user_id))
-        else:
-            cursor.execute('''
-                INSERT INTO user_fitness_data (user_id, height, weight_today, waist, hip, waist_hip_ratio, date)
-                VALUES (%s, %s, %s, %s, %s, %s, CURDATE())
-            ''', (user_id, height, weight_today, waist, hip, waist_hip_ratio))
+        cursor.execute('''
+            INSERT INTO user_fitness_data (user_id, height, weight_today, waist, hip, waist_hip_ratio, date)
+            VALUES (%s, %s, %s, %s, %s, %s, CURDATE())
+            ON DUPLICATE KEY UPDATE
+            height = VALUES(height),
+            weight_today = VALUES(weight_today),
+            waist = VALUES(waist),
+            hip = VALUES(hip),
+            waist_hip_ratio = VALUES(waist_hip_ratio)
+        ''', (user_id, height, weight_today, waist, hip, waist_hip_ratio))
 
         connection.commit()
         cursor.close()
+        connection.close()
+
         return jsonify({'success': True}), 200
     except Exception as e:
+        app.logger.error(f"Error updating profile: {e}")
         return jsonify({'error': 'Failed to update profile data'}), 500
+
+
+
+
     
 @app.route('/get-exercise-data', methods=['GET'])
 def get_exercise_data():
@@ -1112,6 +1189,179 @@ def add_exercise():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/get-today-exercises', methods=['GET'])
+def get_today_exercises():
+    user_id = session.get('id')  # 確保用戶已登入
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        # 獲取用戶數據
+        cursor.execute("""
+            SELECT height, weight_today, waist, hip 
+            FROM user_fitness_data 
+            WHERE user_id = %s AND date = CURDATE()
+        """, (user_id,))
+        user_data = cursor.fetchone()
+
+        if not user_data or not all([user_data['height'], user_data['weight_today'], user_data['waist'], user_data['hip']]):
+            return jsonify({'error': '今日數據未完整輸入'}), 400
+
+        # 計算 BMI 和腰臀比
+        height = user_data['height']
+        weight = user_data['weight_today']
+        waist = user_data['waist']
+        hip = user_data['hip']
+
+        bmi = weight / ((height / 100) ** 2)
+        whr = waist / hip
+
+        # 確定體型
+        if bmi < 18.5 and whr < 0.9:
+            body_type = 'thin'
+        elif 18.5 <= bmi <= 25 and whr < 0.9:
+            body_type = 'average'
+        else:
+            body_type = 'overweight'
+
+        # 日期轉換成中文格式
+        day_of_week_map = {
+            'Monday': '星期一',
+            'Tuesday': '星期二',
+            'Wednesday': '星期三',
+            'Thursday': '星期四',
+            'Friday': '星期五',
+            'Saturday': '星期六',
+            'Sunday': '星期日'
+        }
+        day_of_week = day_of_week_map[datetime.datetime.now().strftime('%A')]
+
+        # 構造返回數據
+        fitness_plans = {
+    'thin': {
+        '星期一': [
+            {'exercise': '俯臥撐', 'image': '俯臥撐.png', 'video': '登山跑.mp4'},
+            {'exercise': '仰臥起坐', 'image': '仰臥起坐.png', 'video': '臀橋.mp4'},
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '深蹲.mp4'}
+        ],
+        '星期二': [
+            {'exercise': '深蹲', 'image': '深蹲.png', 'video': '深蹲.mp4'},
+            {'exercise': '跳躍深蹲', 'image': '跳躍深蹲.png', 'video': '跳躍深蹲.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'}
+        ],
+        '星期三': [
+            {'exercise': '平板支撐', 'image': '平板支撐.png', 'video': '平板支撐.mp4'},
+            {'exercise': '高抬腿', 'image': '高抬腿.png', 'video': '登山跑.mp4'},
+            {'exercise': '仰臥自行車', 'image': '仰臥自行車.png', 'video': '深蹲.mp4'}
+        ],
+        '星期四': [
+            {'exercise': '弓步蹲', 'image': '弓箭步.png', 'video': '登山跑.mp4'},
+            {'exercise': '單腳硬拉', 'image': '單腳硬拉.png', 'video': '波比跳.mp4'},
+            {'exercise': '跳躍深蹲', 'image': '跳躍深蹲.png', 'video': '跳躍深蹲.mp4'}
+        ],
+        '星期五': [
+            {'exercise': '波比跳', 'image': '波比跳.png', 'video': '波比跳.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'},
+            {'exercise': '跳躍深蹲', 'image': '跳躍深蹲.png', 'video': '跳躍深蹲.mp4'}
+        ],
+        '星期六': [
+            {'exercise': '開合跳', 'image': '開合跳.png', 'video': '登山跑.mp4'},
+            {'exercise': '仰臥腿舉', 'image': '仰臥腿舉.png', 'video': '深蹲.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'}
+        ],
+        '星期日': [
+            {'exercise': '休息日：放鬆並進行輕度伸展', 'image': None, 'video': None}
+        ]
+    },
+    'average': {
+        '星期一': [
+            {'exercise': '凳上臂屈伸', 'image': '凳上臂屈伸.png', 'video': '登山跑.mp4'},
+            {'exercise': '俯臥撐', 'image': '俯臥撐.png', 'video': '登山跑.mp4'},
+            {'exercise': '跳繩', 'image': '跳繩.png', 'video': '登山跑.mp4'}
+        ],
+        '星期二': [
+            {'exercise': '波比跳', 'image': '波比跳.png', 'video': '波比跳.mp4'},
+            {'exercise': '俯臥撐', 'image': '俯臥撐.png', 'video': '俯臥撐.mp4'},
+            {'exercise': '凳上臂屈伸', 'image': '凳上臂屈伸.png', 'video': '凳上臂屈伸.mp4'}
+        ],
+        '星期三': [
+            {'exercise': '高抬腿', 'image': '高抬腿.png', 'video': '登山跑.mp4'},
+            {'exercise': '深蹲', 'image': '深蹲.png', 'video': '登山跑.mp4'},
+            {'exercise': '俯臥撐', 'image': '俯臥撐.png', 'video': '登山跑.mp4'}
+        ],
+        '星期四': [
+            {'exercise': '俯臥撐', 'image': '俯臥撐.png', 'video': '登山跑.mp4'},
+            {'exercise': '凳上臂屈伸', 'image': '凳上臂屈伸.png', 'video': '登山跑.mp4'},
+            {'exercise': '仰臥自行車', 'image': '仰臥自行車.png', 'video': '登山跑.mp4'}
+        ],
+        '星期五': [
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '俯臥撐', 'image': '俯臥撐.png', 'video': '俯臥撐.mp4'},
+            {'exercise': '平板支撐', 'image': '平板支撐.png', 'video': '平板支撐.mp4'}
+        ],
+        '星期六': [
+            {'exercise': '高抬腿', 'image': '高抬腿.png', 'video': '登山跑.mp4'},
+            {'exercise': '開合跳', 'image': '開合跳.png', 'video': '登山跑.mp4'},
+            {'exercise': '肩膀挺舉', 'image': '肩膀挺舉.png', 'video': '登山跑.mp4'}
+        ],
+        '星期日': [
+            {'exercise': '休息日：放鬆並進行輕度伸展', 'image': None, 'video': None}
+        ]
+    },
+    'overweight': {
+        '星期一': [
+            {'exercise': '步行', 'image': '步行.png', 'video': None},
+            {'exercise': '牽拉運動', 'image': '牽拉運動.png', 'video': None},
+            {'exercise': '高抬腿', 'image': '高抬腿.png', 'video': None}
+        ],
+        '星期二': [
+            {'exercise': '靠牆深蹲', 'image': '深蹲.png', 'video': '深蹲.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'},
+            {'exercise': '波比跳', 'image': '波比跳.png', 'video': '波比跳.mp4'}
+        ],
+        '星期三': [
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '深蹲', 'image': '深蹲.png', 'video': '登山跑.mp4'},
+            {'exercise': '側步蹲', 'image': '側步蹲.png', 'video': '登山跑.mp4'}
+        ],
+        '星期四': [
+            {'exercise': '跪姿俯臥撐', 'image': '俯臥撐.png', 'video': '俯臥撐.mp4'},
+            {'exercise': '平板支撐', 'image': '平板支撐.png', 'video': '平板支撐.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'}
+        ],
+        '星期五': [
+            {'exercise': '深蹲', 'image': '深蹲.png', 'video': '深蹲.mp4'},
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '開合跳', 'image': '開合跳.png', 'video': '開合跳.mp4'}
+        ],
+        '星期六': [
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '跳繩', 'image': '跳繩.png', 'video': '登山跑.mp4'},
+            {'exercise': '側棒式支撐', 'image': '側棒式支撐.png', 'video': '登山跑.mp4'}
+        ],
+        '星期日': [
+            {'exercise': '休息日：放鬆並進行輕度伸展', 'image': None, 'video': None}
+        ]
+    }
+}
+
+
+        today_plan = fitness_plans.get(body_type, {}).get(day_of_week)
+        if not today_plan:
+            return jsonify({'error': '未找到相應的健身計畫'}), 404
+
+        return jsonify({'bodyType': body_type, 'dayOfWeek': day_of_week, 'exercises': today_plan})
+    except Exception as e:
+        logging.error(f"Error fetching today's exercises: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+
 
 @app.route('/get-exercises', methods=['GET'])
 def get_exercises():
