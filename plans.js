@@ -8,89 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let interval, restInterval;
     let remainingSeconds = 60;
 
-    fetch('/get-plan-status', { method: 'GET' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.completed) {
-                exerciseTable.innerHTML = `<div class="complete-message">今日計畫已完成！</div>`;
-            } else {
-                loadProfileData();
-            }
-        })
-        .catch(error => {
-            console.error('獲取用戶計劃狀態時出錯:', error);
-            exerciseTable.innerHTML = `<tr><td>未能加載健身計劃，請稍後再試</td></tr>`;
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const addExerciseButton = document.getElementById('addExerciseButton');
-            if (addExerciseButton) {
-                addExerciseButton.addEventListener('click', handleAddExercise);
-            } else {
-                console.error('addExerciseButton 未找到，請檢查 HTML 是否包含該元素');
-            }
-        });
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-    // 加載使用者資料，判斷 BMI 與 WHR
-function loadProfileData() {
-    const dayOfWeekEnglish = today.toLocaleString('en-US', { weekday: 'long' });
-    const dayOfWeekMap = {
-        'Monday': '星期一',
-        'Tuesday': '星期二',
-        'Wednesday': '星期三',
-        'Thursday': '星期四',
-        'Friday': '星期五',
-        'Saturday': '星期六',
-        'Sunday': '星期日'
-    };
-    const dayOfWeek = dayOfWeekMap[dayOfWeekEnglish];
-
-    fetch('/get-profile-data')
-        .then(response => response.json())
-        .then(data => {
-            const { height, weight_today: weight, waist, hip } = data;
-
-            if (!height || !weight || !waist || !hip) {
-                exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入完整的今日數據（包含腰圍與臀圍）</td></tr>`;
-            } else {
-                const bodyType = calculateBodyType(height, weight, waist, hip);
-                loadExercisePlan(bodyType, dayOfWeek);
-            }
-        })
-        .catch(error => {
-            console.error("獲取使用者資料時發生錯誤:", error);
-            exerciseTable.innerHTML = `<tr><td>無法加載健身計畫，請稍後再試。</td></tr>`;
-        });
-}
-
-// 計算 BMI 和 WHR 來判斷體型
-function calculateBodyType(height, weight, waist, hip) {
-    const bmi = weight / ((height / 100) ** 2);
-    const whr = waist / hip;
-
-    if (bmi < 18.5 && whr < 0.9) {
-        return 'thin'; // 過輕計畫
-    } else if (bmi >= 18.5 && bmi <= 25 && whr < 0.9) {
-        return 'average'; // 適中計畫
-    } else if (bmi > 25 || whr > 0.9) {
-        return 'overweight'; // 過重計畫
-    } else {
-        console.warn("BMI 與 WHR 的組合無法識別，預設為適中計畫。");
-        return 'average';
-    }
-}
-
-
-    // 加載對應的健身計劃
+// 加載對應的健身計劃
     function loadExercisePlan(bodyType, dayOfWeek) {
         console.log(`加載健身計劃，Body Type: ${bodyType}, Day of Week: ${dayOfWeek}`);
         const fitnessPlans = {
@@ -166,9 +84,9 @@ function calculateBodyType(height, weight, waist, hip) {
             },
             overweight: {
                 星期一: [
-                    { exercise: '步行', image: '步行.png' },
-                    { exercise: '牽拉運動', image: '牽拉運動.png' },
-                    { exercise: '高抬腿', image: '高抬腿.png' }
+                    { exercise: '步行', image: '步行.png' ,video: '深蹲.mp4'},
+                    { exercise: '牽拉運動', image: '牽拉運動.png' ,video: '俯臥撐.mp4'},
+                    { exercise: '高抬腿', image: '高抬腿.png' ,video: '平板支撐.mp4'}
                 ],
                 星期二: [
                     { exercise: '靠牆深蹲', image: '深蹲.png' , video: '深蹲.mp4'},
@@ -225,6 +143,92 @@ function calculateBodyType(height, weight, waist, hip) {
         }
     }
 
+
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+    // 加載使用者資料，判斷 BMI 與 WHR
+function loadProfileData() {
+    const dayOfWeekEnglish = today.toLocaleString('en-US', { weekday: 'long' });
+    const dayOfWeekMap = {
+        'Monday': '星期一',
+        'Tuesday': '星期二',
+        'Wednesday': '星期三',
+        'Thursday': '星期四',
+        'Friday': '星期五',
+        'Saturday': '星期六',
+        'Sunday': '星期日'
+    };
+    const dayOfWeek = dayOfWeekMap[dayOfWeekEnglish];
+
+    fetch('/get-profile-data')
+            .then(response => response.json())
+            .then(data => {
+                const { height, weight_today: weight, waist, hip } = data;
+
+                if (!height || !weight || !waist || !hip) {
+                    exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入完整的今日數據（包含腰圍與臀圍）</td></tr>`;
+                } else {
+                    const bodyType = calculateBodyType(height, weight, waist, hip);
+                    loadExercisePlan(bodyType, dayOfWeek); // 確保函數已定義
+                }
+            })
+            .catch(error => {
+                console.error("獲取使用者資料時發生錯誤:", error);
+                exerciseTable.innerHTML = `<tr><td>無法加載健身計畫，請稍後再試。</td></tr>`;
+            });
+    }
+
+    fetch('/get-plan-status', { method: 'GET' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.completed) {
+                exerciseTable.innerHTML = `<div class="complete-message">今日計畫已完成！</div>`;
+            } else {
+                loadProfileData();
+            }
+        })
+        .catch(error => {
+            console.error('獲取用戶計劃狀態時出錯:', error);
+            exerciseTable.innerHTML = `<tr><td>未能加載健身計劃，請稍後再試</td></tr>`;
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const addExerciseButton = document.getElementById('addExerciseButton');
+            if (addExerciseButton) {
+                addExerciseButton.addEventListener('click', handleAddExercise);
+            } else {
+                console.error('addExerciseButton 未找到，請檢查 HTML 是否包含該元素');
+            }
+        });
+
+// 計算 BMI 和 WHR 來判斷體型
+function calculateBodyType(height, weight, waist, hip) {
+    const bmi = weight / ((height / 100) ** 2);
+    const whr = waist / hip;
+
+    if (bmi < 18.5 && whr < 0.9) {
+        return 'thin'; // 過輕計畫
+    } else if (bmi >= 18.5 && bmi <= 25 && whr < 0.9) {
+        return 'average'; // 適中計畫
+    } else if (bmi > 25 || whr > 0.9) {
+        return 'overweight'; // 過重計畫
+    } else {
+        console.warn("BMI 與 WHR 的組合無法識別，預設為適中計畫。");
+        return 'average';
+    }
+}
+
+
+    
     // 顯示當天的動作並添加計時功能
     function displayExercise(exerciseObj, dayOfWeek) {
         const exerciseTable = document.getElementById('exerciseTable');
@@ -409,6 +413,7 @@ function calculateBodyType(height, weight, waist, hip) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    const exerciseSelect = document.getElementById('exerciseSelect');
     const chartCanvas = document.getElementById("exerciseChart");
 
     if (!chartCanvas) {
@@ -418,113 +423,140 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ctx = chartCanvas.getContext("2d");
 
-    // 向後端請求數據
+    // 確保函式已定義在全域作用域
+    fetch('/get-today-exercises')
+        .then(response => response.json())
+        .then(data => {
+            if (data.exercises) {
+                const { bodyType, dayOfWeek } = data;
+                loadExercisePlan(bodyType, dayOfWeek);
+            } else {
+                console.error("無法獲取每日推薦清單:", data.error || "未知錯誤");
+                exerciseTable.innerHTML = `<tr><td>未找到每日推薦清單</td></tr>`;
+            }
+        })
+        .catch(error => console.error("獲取每日推薦清單時出錯:", error));
+
+
+
+    // 向後端請求統計數據
     fetch("/get-exercise-stats")
-    .then(response => {
-        if (!response.ok) throw new Error("後端回傳錯誤");
-        return response.json();
-    })
-    .then(data => {
-        if (!data.stats || !Array.isArray(data.stats)) {
-            throw new Error("返回的數據格式不正確");
-        }
+        .then(response => {
+            if (!response.ok) throw new Error("後端回傳錯誤");
+            return response.json();
+        })
+        .then(data => {
+            if (!data.stats || !Array.isArray(data.stats)) {
+                throw new Error("返回的數據格式不正確");
+            }
 
-        // 翻譯動作名稱
-        const translations = {
-            "pushup": "伏地挺身",
-            "squat": "深蹲",
-            "plank": "平板支撐"
-        };
-
-        // 獲取所有日期和動作
-        const labels = [...new Set(data.stats.map(stat => stat.date))];
-        const exercises = [...new Set(data.stats.map(stat => translations[stat.exercise_name] || stat.exercise_name))];
-
-        // 為每個動作生成數據集
-        const datasets = exercises.map(exercise => {
-            return {
-                label: exercise,
-                data: labels.map(date => {
-                    const stat = data.stats.find(s => s.date === date && translations[s.exercise_name] === exercise);
-                    return stat ? stat.total_reps : 0;
-                }),
-                borderColor: getRandomColor(),
-                tension: 0.2, // 平滑折線
-                fill: false,
+            // 翻譯動作名稱
+            const translations = {
+                "pushup": "伏地挺身",
+                "squat": "深蹲",
+                "plank": "平板支撐"
             };
-        });
 
-        // 初始化圖表
-        new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: labels,
-                datasets: datasets,
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: "top",
-                        labels: {
-                            color: "#333", // 圖例文字顏色
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: "訓練量圖表",
-                        color: "#333", // 標題文字顏色
-                        font: {
-                            size: 18, // 標題字體大小
-                            weight: "bold" // 標題字體加粗
-                        },
-                        padding: {
-                            top: 10, // 調整與上方的距離
-                            bottom: 10 // 調整與圖表的距離
-                        },
-                    }
+            // 獲取所有日期和動作
+            const labels = [...new Set(data.stats.map(stat => stat.date))];
+            const exercises = [...new Set(data.stats.map(stat => translations[stat.exercise_name] || stat.exercise_name))];
+
+            // 為每個動作生成數據集
+            const datasets = exercises.map(exercise => {
+                return {
+                    label: exercise,
+                    data: labels.map(date => {
+                        const stat = data.stats.find(s => s.date === date && translations[s.exercise_name] === exercise);
+                        return stat ? stat.total_reps : 0;
+                    }),
+                    borderColor: getRandomColor(),
+                    tension: 0.2, // 平滑折線
+                    fill: false,
+                };
+            });
+
+            // 初始化圖表
+            new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: datasets,
                 },
-                scales: {
-                    x: {
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: "top",
+                            labels: {
+                                color: "#333", // 圖例文字顏色
+                            }
+                        },
                         title: {
                             display: true,
-                            text: "日期",
-                            color: "#333", // X軸標題文字顏色
-                        },
-                        ticks: {
-                            color: "#333", // X軸標籤文字顏色
-                        },
-                        grid: {
-                            color: "#e0e0e0" // X軸網格線顏色
+                            text: "訓練量圖表",
+                            color: "#333", // 標題文字顏色
+                            font: {
+                                size: 18, // 標題字體大小
+                                weight: "bold" // 標題字體加粗
+                            },
+                            padding: {
+                                top: 10, // 調整與上方的距離
+                                bottom: 10 // 調整與圖表的距離
+                            },
                         }
                     },
-                    y: {
-                        title: {
-                            display: true,
-                            text: "訓練量",
-                            color: "#333", // Y軸標題文字顏色
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: "日期",
+                                color: "#333", // X軸標題文字顏色
+                            },
+                            ticks: {
+                                color: "#333", // X軸標籤文字顏色
+                            },
+                            grid: {
+                                color: "#e0e0e0" // X軸網格線顏色
+                            }
                         },
-                        ticks: {
-                            color: "#333", // Y軸標籤文字顏色
-                        },
-                        grid: {
-                            color: "#e0e0e0" // Y軸網格線顏色
+                        y: {
+                            title: {
+                                display: true,
+                                text: "訓練量",
+                                color: "#333", // Y軸標題文字顏色
+                            },
+                            ticks: {
+                                color: "#333", // Y軸標籤文字顏色
+                            },
+                            grid: {
+                                color: "#e0e0e0" // Y軸網格線顏色
+                            }
                         }
                     }
                 }
-            }
+            });
+        })
+        .catch(error => console.error("加載訓練數據時出錯:", error));
+
+    // 隨機顏色生成器
+    function getRandomColor() {
+        return `rgba(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, 0.8)`;
+    }
+
+    /**
+     * 更新每日推薦清單的選項
+     */
+    function updateExerciseSelectOptions(exercises) {
+        exerciseSelect.innerHTML = ''; // 清空舊的選項
+        exercises.forEach(exercise => {
+            const option = document.createElement('option');
+            option.value = exercise.exercise_name;
+            option.textContent = exercise.exercise_name;
+            exerciseSelect.appendChild(option);
         });
-        
-    })
-    .catch(error => console.error("加載訓練數據時出錯:", error));
+    }
 
-// 隨機顏色生成器
-function getRandomColor() {
-    return `rgba(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, 0.8)`;
-}
-
-    
     // 初始化事件監聽器與功能
     initEventListeners();
     fetchAndRenderExercises();

@@ -950,28 +950,35 @@ def delete_member():
 
 
 
+from datetime import datetime, date  # 確保導入正確的日期模組
 
 
     
 @app.route('/get-plan-status', methods=['GET'])
 def get_plan_status():
-    user_id = session.get('id')  # 從 session 中獲取使用者 ID
-    if not user_id:
-        return jsonify({'error': 'User not logged in'}), 401
+    try:
+        member_id = session.get('id')  # 確保用戶已登入
+        if not member_id:
+            return jsonify({'error': '未登入用戶'}), 401
 
-    today_date = datetime.date.today()
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
-    # 查詢 plans 表，檢查計畫是否已完成
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute('SELECT completed FROM plans WHERE user_id = %s AND date = %s', (user_id, today_date))
-    plan_status = cursor.fetchone()
-    cursor.close()
-    
-    if plan_status and plan_status['completed']:
-        return jsonify({'completed': True})
-    else:
-        return jsonify({'completed': False})
+        # 查詢用戶計畫完成狀態
+        cursor.execute("SELECT completed FROM plans WHERE member_id = %s AND date = CURDATE()", (member_id,))
+        result = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if result:
+            return jsonify({'completed': result['completed']})
+        else:
+            return jsonify({'completed': False})
+    except Exception as e:
+        app.logger.error(f"Error in /get-plan-status: {e}")
+        return jsonify({'error': '伺服器發生錯誤，請稍後再試。'}), 500
+
 
 
 
@@ -1008,106 +1015,113 @@ def complete_plan():
         return jsonify({'error': str(e)}), 500
 
 
+import openai
+
+openai.api_key = "sk-fEQToFD2mChYgzeB8vu9pDKC457afnK4zbHEbCUbTJT3BlbkFJon8Mt5BClgQ63_aRQ6Jm0-jb3QkqFfaBVZV9uj8KAA"
+print("使用的 API Key:", openai.api_key)  # 測試是否正確設置
 
 @app.route('/get-profile-data', methods=['GET'])
 def get_profile_data():
     try:
         user_id = session.get('id')
         if not user_id:
-            return jsonify({'error': '用戶未登入'}), 401
+            return jsonify({'error': 'User not logged in'}), 401
 
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # 查詢當天數據
+        # 查詢當日最新數據
+        today = date.today()
         cursor.execute('''
-            SELECT height, weight_today, waist, hip, waist_hip_ratio 
-            FROM user_fitness_data 
-            WHERE user_id = %s AND date = CURDATE()
-        ''', (user_id,))
+            SELECT height, weight_today, waist, hip, waist_hip_ratio
+            FROM user_fitness_data
+            WHERE user_id = %s AND DATE(date) = %s
+            ORDER BY date DESC
+            LIMIT 1
+        ''', (user_id, today))
         profile_data = cursor.fetchone()
-        
-        # 清空未讀結果集
-        cursor.fetchall()
-
-        if not profile_data:
-            # 若當天數據不存在，嘗試從前一天繼承
-            cursor.execute('''
-                SELECT height, weight_today, waist, hip, waist_hip_ratio 
-                FROM user_fitness_data 
-                WHERE user_id = %s AND date = (CURDATE() - INTERVAL 1 DAY)
-            ''', (user_id,))
-            profile_data = cursor.fetchone()
-            
-            # 清空未讀結果集
-            cursor.fetchall()
-
-            if profile_data:
-                # 自動插入當天數據
-                cursor.execute('''
-                    INSERT INTO user_fitness_data (user_id, height, weight_today, waist, hip, waist_hip_ratio, date)
-                    VALUES (%s, %s, %s, %s, %s, %s, CURDATE())
-                ''', (user_id, profile_data['height'], profile_data['weight_today'], 
-                      profile_data['waist'], profile_data['hip'], profile_data['waist_hip_ratio']))
-                connection.commit()
 
         cursor.close()
+        connection.close()
 
-        if profile_data:
-            return jsonify(profile_data)
-        else:
-            return jsonify({'error': '無法獲取個人數據'}), 404
-    except mysql.connector.Error as db_error:
-        app.logger.error(f"資料庫錯誤: {db_error}")
-        return jsonify({'error': '資料庫發生錯誤'}), 500
+        if not profile_data:
+            profile_data = {
+                "height": None,
+                "weight_today": None,
+                "waist": None,
+                "hip": None,
+                "waist_hip_ratio": None,
+            }
+
+        return jsonify(profile_data)
     except Exception as e:
-        app.logger.error(f"其他錯誤: {e}")
-        return jsonify({'error': '伺服器內部錯誤'}), 500
+        app.logger.error(f"Error in get-profile-data: {e}")
+        return jsonify({'error': 'Server error occurred'}), 500
+
+
+
+
+
+
+
+
 
 
 
 
 @app.route('/update-profile', methods=['POST'])
 def update_profile():
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'success': False, 'error': '用戶未登入'}), 401
+
+    data = request.get_json()
+    height = data.get('height')
+    weight_today = data.get('weight_today')
+    waist = data.get('waist')
+    hip = data.get('hip')
+
     try:
-        user_id = session.get('id')
-        if not user_id:
-            return jsonify({'error': 'User not logged in'}), 401
-
-        data = request.get_json()
-        height = data.get('height')
-        weight_today = data.get('weight_today')
-        waist = data.get('waist')
-        hip = data.get('hip')
-
-        if not all([height, weight_today, waist, hip]):
-            return jsonify({'error': 'Invalid data provided'}), 400
-
         # 計算腰臀比
-        waist_hip_ratio = round(waist / hip, 2)
+        waist_hip_ratio = round(waist / hip, 2) if waist and hip and hip != 0 else None
 
         connection = get_db_connection()
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
 
+        # 更新或插入資料邏輯
         cursor.execute('''
             INSERT INTO user_fitness_data (user_id, height, weight_today, waist, hip, waist_hip_ratio, date)
             VALUES (%s, %s, %s, %s, %s, %s, CURDATE())
             ON DUPLICATE KEY UPDATE
-            height = VALUES(height),
-            weight_today = VALUES(weight_today),
-            waist = VALUES(waist),
-            hip = VALUES(hip),
-            waist_hip_ratio = VALUES(waist_hip_ratio)
+                height = VALUES(height),
+                weight_today = VALUES(weight_today),
+                waist = VALUES(waist),
+                hip = VALUES(hip),
+                waist_hip_ratio = VALUES(waist_hip_ratio)
         ''', (user_id, height, weight_today, waist, hip, waist_hip_ratio))
 
         connection.commit()
         cursor.close()
-        connection.close()
 
-        return jsonify({'success': True}), 200
+        return jsonify({
+            'success': True,
+            'data': {
+                'height': height,
+                'weight_today': weight_today,
+                'waist': waist,
+                'hip': hip,
+                'waist_hip_ratio': waist_hip_ratio
+            }
+        })
     except Exception as e:
-        app.logger.error(f"Error updating profile: {e}")
-        return jsonify({'error': 'Failed to update profile data'}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+
+
+
+
 
 
 
@@ -1189,6 +1203,7 @@ def add_exercise():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
 @app.route('/get-today-exercises', methods=['GET'])
 def get_today_exercises():
     user_id = session.get('id')  # 確保用戶已登入
@@ -1203,7 +1218,7 @@ def get_today_exercises():
         cursor.execute("""
             SELECT height, weight_today, waist, hip 
             FROM user_fitness_data 
-            WHERE user_id = %s AND date = CURDATE()
+            WHERE user_id = %s AND DATE(date) = CURDATE()
         """, (user_id,))
         user_data = cursor.fetchone()
 
@@ -1237,9 +1252,9 @@ def get_today_exercises():
             'Saturday': '星期六',
             'Sunday': '星期日'
         }
-        day_of_week = day_of_week_map[datetime.datetime.now().strftime('%A')]
+        day_of_week = day_of_week_map[datetime.now().strftime('%A')]
 
-        # 構造返回數據
+        # 構造健身計劃
         fitness_plans = {
     'thin': {
         '星期一': [
@@ -1313,9 +1328,9 @@ def get_today_exercises():
     },
     'overweight': {
         '星期一': [
-            {'exercise': '步行', 'image': '步行.png', 'video': None},
-            {'exercise': '牽拉運動', 'image': '牽拉運動.png', 'video': None},
-            {'exercise': '高抬腿', 'image': '高抬腿.png', 'video': None}
+            {'exercise': '步行', 'image': '步行.png', 'video': '深蹲.mp4'},
+            {'exercise': '牽拉運動', 'image': '牽拉運動.png', 'video': '俯臥撐.mp4'},
+            {'exercise': '高抬腿', 'image': '高抬腿.png', 'video': '平板支撐.mp4'}
         ],
         '星期二': [
             {'exercise': '靠牆深蹲', 'image': '深蹲.png', 'video': '深蹲.mp4'},
@@ -1369,7 +1384,7 @@ def get_exercises():
     if not user_id:
         return jsonify({'error': 'User not logged in'}), 401
 
-    today_date = datetime.date.today()
+    today_date = datetime.now().date()  # 獲取當天日期
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
@@ -1387,7 +1402,9 @@ def get_exercises():
             "pushup": "伏地挺身",
             "squat": "深蹲",
             "plank": "平板支撐",
-            # 加入更多動作翻譯
+            "jump_squat": "跳躍深蹲",
+            "burpee": "波比跳",
+            # 添加更多動作翻譯
         }
 
         # 將英文名稱轉換為中文
@@ -1395,9 +1412,13 @@ def get_exercises():
             exercise['exercise_name'] = exercise_translation.get(exercise['exercise_name'], exercise['exercise_name'])
 
         cursor.close()
+        connection.close()
+
         return jsonify({'exercises': exercises})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error in /get-exercises: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
 
 
 @app.route('/complete-exercises', methods=['POST'])
@@ -1548,33 +1569,36 @@ def delete_exercise(exercise_id):
 
 @app.route('/get-weight-history', methods=['GET'])
 def get_weight_history():
-    try:
-        user_id = session.get('id')
-        if not user_id:
-            return jsonify({'error': 'User not logged in'}), 401
+    user_id = session.get('id')
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
 
+    try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
+
+        # 查詢每日最新數據
         cursor.execute('''
-            SELECT date, weight_today, waist_hip_ratio
+            SELECT DATE(date) as date, weight_today as weight, waist_hip_ratio
             FROM user_fitness_data
             WHERE user_id = %s
-            ORDER BY date ASC
+            ORDER BY DATE(date) ASC, date DESC
         ''', (user_id,))
-        data = cursor.fetchall()
+        records = {}
+        for row in cursor.fetchall():
+            records[row['date']] = row  # 只保留每日最新記錄
+
         cursor.close()
 
-        if not data:
-            return jsonify({'error': 'No data found'}), 404
-
-        dates = [row['date'].strftime('%Y-%m-%d') for row in data]
-        weights = [row['weight_today'] for row in data]
-        waist_hip_ratios = [row['waist_hip_ratio'] for row in data]
+        dates = list(records.keys())
+        weights = [records[date]['weight'] for date in dates]
+        waist_hip_ratios = [records[date]['waist_hip_ratio'] for date in dates]
 
         return jsonify({'dates': dates, 'weights': weights, 'waist_hip_ratios': waist_hip_ratios})
     except Exception as e:
-        logging.error(f'Error fetching weight history: {e}')
         return jsonify({'error': str(e)}), 500
+
+
 
 
 
