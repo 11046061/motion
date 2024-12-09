@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         
 
-    // 加載使用者資料，判斷 BMI 與 WHR
+// 確保在加載用戶數據時，函數已正確引用
 function loadProfileData() {
     const dayOfWeekEnglish = today.toLocaleString('en-US', { weekday: 'long' });
     const dayOfWeekMap = {
@@ -165,27 +165,32 @@ function loadProfileData() {
         'Thursday': '星期四',
         'Friday': '星期五',
         'Saturday': '星期六',
-        'Sunday': '星期日'
+        'Sunday': '星期日',
     };
     const dayOfWeek = dayOfWeekMap[dayOfWeekEnglish];
 
     fetch('/get-profile-data')
-            .then(response => response.json())
-            .then(data => {
-                const { height, weight_today: weight, waist, hip } = data;
+        .then(response => response.json())
+        .then(data => {
+            const { height, weight_today: weight, waist, hip } = data;
 
-                if (!height || !weight || !waist || !hip) {
-                    exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入完整的今日數據（包含腰圍與臀圍）</td></tr>`;
+            if (!height || !weight || !waist || !hip) {
+                exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入完整的今日數據（包含腰圍與臀圍）</td></tr>`;
+            } else {
+                const bodyType = calculateBodyType(height, weight, waist, hip);
+                
+                if (typeof loadExercisePlan === 'function') {
+                    loadExercisePlan(bodyType, dayOfWeek);
                 } else {
-                    const bodyType = calculateBodyType(height, weight, waist, hip);
-                    loadExercisePlan(bodyType, dayOfWeek); // 確保函數已定義
+                    console.error("loadExercisePlan 未定義");
                 }
-            })
-            .catch(error => {
-                console.error("獲取使用者資料時發生錯誤:", error);
-                exerciseTable.innerHTML = `<tr><td>無法加載健身計畫，請稍後再試。</td></tr>`;
-            });
-    }
+            }
+        })
+        .catch(error => {
+            console.error("獲取使用者資料時發生錯誤:", error);
+            exerciseTable.innerHTML = `<tr><td>無法加載健身計畫，請稍後再試。</td></tr>`;
+        });
+}
 
     fetch('/get-plan-status', { method: 'GET' })
         .then(response => response.json())
@@ -584,35 +589,76 @@ document.addEventListener('DOMContentLoaded', () => {
      * 新增動作到清單
      */
     function handleAddExercise() {
-        const exerciseSelect = document.getElementById('exerciseSelect');
+        // 嘗試獲取元素
+        const exerciseNameInput = document.getElementById('exerciseNameInput');
         const setsInput = document.getElementById('setsInput');
         const repsInput = document.getElementById('repsInput');
+        const dayOfWeekInput = document.getElementById('dayOfWeekInput');
     
-        const exerciseName = exerciseSelect.value;
-        const sets = parseInt(setsInput.value, 10);
-        const reps = parseInt(repsInput.value, 10);
-    
-        if (!exerciseName || isNaN(sets) || isNaN(reps) || sets <= 0 || reps <= 0) {
-            alert('請輸入有效的動作、組數和次數');
+        // 檢查所有元素是否正確加載
+        if (!exerciseNameInput || !setsInput || !repsInput || !dayOfWeekInput) {
+            console.error('表單元素未找到，請檢查 HTML 結構是否正確');
+            Swal.fire('錯誤', '無法找到表單元素，請檢查頁面結構', 'error');
             return;
         }
     
+        // 獲取輸入值
+        const exerciseName = exerciseNameInput.value.trim();
+        const sets = parseInt(setsInput.value, 10);
+        const reps = parseInt(repsInput.value, 10);
+        const dayOfWeek = dayOfWeekInput.value.trim();
+    
+        // 驗證輸入值
+        if (!exerciseName || isNaN(sets) || isNaN(reps) || !dayOfWeek) {
+            Swal.fire('錯誤', '請填寫所有欄位', 'error');
+            return;
+        }
+    
+        // 發送請求到後端
         fetch('/add-exercise', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exercise_name: exerciseName, sets, reps }),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                exercise_name: exerciseName,
+                sets: sets,
+                reps: reps,
+                day_of_week: dayOfWeek,
+            }),
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('動作新增成功');
-                    fetchAndRenderExercises();
-                } else {
-                    alert(`新增失敗: ${data.error || '未知錯誤'}`);
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                return response.json();
             })
-            .catch(error => console.error('新增動作時發生錯誤:', error));
+            .then(data => {
+                if (data.error) {
+                    console.error(`新增動作時發生錯誤: ${data.error}`);
+                    Swal.fire('錯誤', data.error, 'error');
+                    return;
+                }
+                console.log(data.message);
+                Swal.fire('成功', '動作已新增至清單', 'success');
+            })
+            .catch(error => {
+                console.error(`新增動作時發生錯誤: ${error.message}`);
+                Swal.fire('錯誤', '無法新增動作，請稍後再試', 'error');
+            });
     }
+    
+    // 綁定按鈕事件
+    document.addEventListener('DOMContentLoaded', function () {
+        const addExerciseButton = document.getElementById('addExerciseButton');
+        if (addExerciseButton) {
+            addExerciseButton.addEventListener('click', handleAddExercise);
+        } else {
+            console.error('新增動作按鈕未找到，請檢查 HTML 結構');
+        }
+    });
+    
+    
 
     /**
      * 從後端獲取資料並渲染表格和圖表

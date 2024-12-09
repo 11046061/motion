@@ -953,31 +953,34 @@ def delete_member():
 from datetime import datetime, date  # 確保導入正確的日期模組
 
 
-    
 @app.route('/get-plan-status', methods=['GET'])
 def get_plan_status():
     try:
-        member_id = session.get('id')  # 確保用戶已登入
+        member_id = session.get('id')
         if not member_id:
-            return jsonify({'error': '未登入用戶'}), 401
+            return jsonify({'error': 'User not logged in'}), 401
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
 
-        # 查詢用戶計畫完成狀態
-        cursor.execute("SELECT completed FROM plans WHERE member_id = %s AND date = CURDATE()", (member_id,))
+        # 查詢當日計畫狀態
+        today_date = datetime.now().date()
+        cursor.execute("""
+            SELECT completed
+            FROM plans
+            WHERE member_id = %s AND date = %s
+        """, (member_id, today_date))
         result = cursor.fetchone()
 
         cursor.close()
-        conn.close()
+        connection.close()
 
-        if result:
-            return jsonify({'completed': result['completed']})
-        else:
-            return jsonify({'completed': False})
+        return jsonify({'completed': result['completed']} if result else {'completed': False})
     except Exception as e:
         app.logger.error(f"Error in /get-plan-status: {e}")
-        return jsonify({'error': '伺服器發生錯誤，請稍後再試。'}), 500
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 
 
 
@@ -1177,32 +1180,43 @@ def get_exercise_stats():
         
 @app.route('/add-exercise', methods=['POST'])
 def add_exercise():
-    user_id = session.get('id')
-    if not user_id:
-        return jsonify({'error': 'User not logged in'}), 401
-
-    data = request.get_json()
-    exercise_name = data.get('exercise_name')
-    sets = data.get('sets')
-    reps = data.get('reps')
-
-    if not exercise_name or not sets or not reps:
-        return jsonify({'error': 'Invalid data'}), 400
-
-    today_date = datetime.date.today()
-
     try:
+        # 驗證用戶是否已登入
+        member_id = session.get('id')
+        if not member_id:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        # 接收前端數據
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid request, no data provided'}), 400
+
+        exercise_name = data.get('exercise_name')
+        sets = data.get('sets')
+        reps = data.get('reps')
+        day_of_week = data.get('day_of_week')
+
+        if not all([exercise_name, sets, reps, day_of_week]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # 插入到數據庫
         connection = get_db_connection()
         cursor = connection.cursor()
-        cursor.execute('''
-            INSERT INTO user_exercises (user_id, exercise_name, sets, reps, date)
+        query = """
+            INSERT INTO user_exercises (member_id, exercise_name, sets, reps, date)
             VALUES (%s, %s, %s, %s, %s)
-        ''', (user_id, exercise_name, sets, reps, today_date))
+        """
+        today_date = datetime.now().date()
+        cursor.execute(query, (member_id, exercise_name, sets, reps, today_date))
         connection.commit()
         cursor.close()
-        return jsonify({'success': True})
+        connection.close()
+
+        return jsonify({'success': True, 'message': 'Exercise added successfully'})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error in /add-exercise: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
     
 @app.route('/get-today-exercises', methods=['GET'])
 def get_today_exercises():
