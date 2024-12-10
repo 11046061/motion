@@ -461,7 +461,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const translations = {
                 "pushup": "伏地挺身",
                 "squat": "深蹲",
-                "plank": "平板支撐"
+                "plank": "平板支撐",
+                "jump_squat": "跳躍深蹲",
+                "burpee": "波比跳",
+                "mountain_climber": "登山跑",
+                "jumping_jack": "開合跳"
             };
 
             // 獲取所有日期和動作
@@ -481,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fill: false,
                 };
             });
-
+            
             // 初始化圖表
             new Chart(ctx, {
                 type: "line",
@@ -626,25 +630,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 reps: reps,
             }),
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.error) {
-                    console.error(`新增動作時發生錯誤: ${data.error}`);
-                    Swal.fire('錯誤', data.error, 'error');
-                    return;
-                }
-                console.log(data.message);
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                Swal.fire('錯誤', data.error, 'error');
+            } else {
                 Swal.fire('成功', '動作已新增至清單', 'success');
-            })
-            .catch(error => {
-                console.error(`新增動作時發生錯誤: ${error.message}`);
-                Swal.fire('錯誤', '無法新增動作，請稍後再試', 'error');
-            });
+                fetchAndRenderExercises(); // 更新表格
+                fetch('/get-exercise-stats') // 更新圖表
+                    .then(res => res.json())
+                    .then(updateMultiDayChart)
+                    .catch(err => console.error('更新圖表時發生錯誤:', err));
+            }
+        })
+        .catch(error => {
+            Swal.fire('錯誤', '無法新增動作，請稍後再試', 'error');
+        });
     }
     
     // 綁定按鈕事件
@@ -663,17 +664,30 @@ document.addEventListener('DOMContentLoaded', () => {
      * 從後端獲取資料並渲染表格和圖表
      */
     function fetchAndRenderExercises() {
+        const chartCanvas = document.getElementById('exerciseChart'); // 修改 ID 為 exerciseChart
+        if (!chartCanvas) {
+            console.error('找不到圖表元素，請檢查 HTML 結構是否正確。');
+            return;
+        }
+    
+        const ctx = chartCanvas.getContext('2d'); // 獲取上下文
+    
         fetch('/get-exercises')
             .then(response => response.json())
             .then(data => {
                 if (data.exercises) {
-                    renderExerciseTable(data.exercises);
+                    renderExerciseTable(data.exercises); // 渲染表格
+                    updateMultiDayChart({ labels: data.labels, datasets: data.datasets, ctx: ctx }); // 更新圖表
                 } else {
                     console.error('無法獲取動作列表:', data.error || '未知錯誤');
                 }
             })
             .catch(error => console.error('獲取動作列表時發生錯誤:', error));
     }
+    
+    
+    
+    
 
     /**
      * 渲染動作表格
@@ -687,11 +701,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <th>次數</th>
                 <th>操作</th>
             </tr>`;
-        
+    
         exercises.forEach(exercise => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${exercise.exercise_name}</td>
+                <td>${translateExerciseName(exercise.exercise_name)}</td>
                 <td>${exercise.sets}</td>
                 <td>${exercise.reps}</td>
                 <td>
@@ -708,6 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+    
 
     /**
      * 刪除動作
@@ -718,13 +733,18 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.success) {
                     alert('刪除成功');
-                    fetchAndRenderExercises();
+                    fetchAndRenderExercises(); // 更新表格
+                    fetch('/get-exercise-stats') // 更新圖表
+                        .then(res => res.json())
+                        .then(updateMultiDayChart)
+                        .catch(err => console.error('更新圖表時發生錯誤:', err));
                 } else {
                     alert('刪除失敗');
                 }
             })
             .catch(error => console.error('刪除動作時發生錯誤:', error));
     }
+    
 
     /**
      * 完成計劃
@@ -774,18 +794,28 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * 更新折線圖
      */
-    function updateMultiDayChart(data) {
-        const chartCanvas = document.getElementById('exerciseLineChart');
-        const ctx = chartCanvas.getContext('2d');
 
-        if (exerciseChart) {
+    
+    function updateMultiDayChart(data) {
+        const chartCanvas = document.getElementById('exerciseChart');
+        if (!chartCanvas) {
+            console.error('找不到圖表元素');
+            return;
+        }
+    
+        const ctx = chartCanvas.getContext('2d');
+    
+        // 檢查數據格式
+        if (!data || !data.labels || !data.datasets || !Array.isArray(data.labels) || !Array.isArray(data.datasets)) {
+            console.error('圖表數據格式錯誤:', data);
+            return;
+        }
+    
+        if (exerciseChart && typeof exerciseChart.destroy === "function") {
             exerciseChart.destroy();
         }
-
-        data.datasets.forEach(dataset => {
-            dataset.label = translateExerciseName(dataset.label);
-        });
-
+    
+        // 創建新圖表
         exerciseChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -796,13 +826,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: {
-                        title: { display: true, text: '日期' },
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: '總訓練量（次數）' },
-                    },
+                    x: { title: { display: true, text: '日期' } },
+                    y: { beginAtZero: true, title: { display: true, text: '總訓練量（次數）' } },
                 },
                 plugins: {
                     legend: { position: 'top' },
@@ -810,18 +835,32 @@ document.addEventListener('DOMContentLoaded', () => {
             },
         });
     }
+    
+    
+    
+    
+    
+    
+    
 
     /**
      * 翻譯動作名稱
      */
     function translateExerciseName(name) {
         const translations = {
-            "pushup": "伏地挺身",
-            "plank": "平板支撐",
-            "squat": "深蹲",
+            pushup: '伏地挺身',
+            squat: '深蹲',
+            plank: '平板支撐',
+            burpee: '波比跳',
+            mountain_climber: '登山跑',
+            jumping_jack: '開合跳',
+            jump_squat: '跳躍深蹲',
+            // 添加其他動作名稱
         };
-        return translations[name] || name;
+        return translations[name] || name; // 如果找不到翻譯，返回原名稱
     }
+    
+    
 });
 
 

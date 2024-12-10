@@ -1037,7 +1037,7 @@ def complete_plan():
 
 import openai
 
-openai.api_key="sk-3kZrUdCT-cv0seS-5_6eFp0eQ79IAaST8O5aOZzb4YT3BlbkFJI4mKrS_lrFKOvxBkSmKTWJ-P_s8Dy_ddeXO206ej4A"
+openai.api_key="sk-1qb4-OeziAth5JwGh-uDp_rnnUArW0f30wQcAVDSAHT3BlbkFJ8RXkphamEGGrXhVNHGKU9KGD8Dmd0KldyM3Qrfw4gA"
 print("使用的 API Key:", openai.api_key)  # 測試是否正確設置
 
 @app.route('/get-profile-data', methods=['GET'])
@@ -1189,6 +1189,7 @@ def get_exercise_stats():
         return jsonify({'stats': stats})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 
