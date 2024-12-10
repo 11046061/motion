@@ -956,29 +956,41 @@ from datetime import datetime, date  # 確保導入正確的日期模組
 @app.route('/get-plan-status', methods=['GET'])
 def get_plan_status():
     try:
-        member_id = session.get('id')
-        if not member_id:
+        # 獲取用戶 ID
+        user_id = session.get('id')
+        if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
 
+        # 資料庫連接
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # 查詢當日計畫狀態
+        # 獲取今天的日期
         today_date = datetime.now().date()
+
+        # 查詢當天的計劃完成狀態
         cursor.execute("""
             SELECT completed
             FROM plans
-            WHERE member_id = %s AND date = %s
-        """, (member_id, today_date))
+            WHERE user_id = %s AND date = %s
+        """, (user_id, today_date))
         result = cursor.fetchone()
 
+        # 關閉連接
         cursor.close()
         connection.close()
 
-        return jsonify({'completed': result['completed']} if result else {'completed': False})
+        # 如果查詢結果為空
+        if not result:
+            return jsonify({'completed': False})  # 表示當天無計劃記錄
+
+        # 返回查詢結果
+        return jsonify({'completed': bool(result['completed'])})
     except Exception as e:
         app.logger.error(f"Error in /get-plan-status: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': str(e)}), 500
+
+
 
 
 
@@ -992,7 +1004,7 @@ def complete_plan():
     if not user_id:
         return jsonify({'error': 'User not logged in'}), 401
 
-    today_date = datetime.date.today()
+    today_date = datetime.now().date()  # 獲取當前日期
 
     try:
         connection = get_db_connection()
@@ -1002,25 +1014,30 @@ def complete_plan():
         cursor.execute('SELECT completed FROM plans WHERE user_id = %s AND date = %s', (user_id, today_date))
         plan = cursor.fetchone()
 
-        if plan and plan['completed']:
+        if plan and plan[0]:  # 如果完成記錄已存在
             return jsonify({'status': 'already_completed'})
 
-        # 更新 plans 表為完成狀態
+        # 插入或更新 plans 表中的完成狀態
         cursor.execute('''
             INSERT INTO plans (user_id, date, completed)
             VALUES (%s, %s, TRUE)
             ON DUPLICATE KEY UPDATE completed = TRUE
         ''', (user_id, today_date))
         connection.commit()
-        cursor.close()
+
         return jsonify({'status': 'success'})
     except Exception as e:
+        app.logger.error(f"Error in /complete-plan: {e}")
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
 
 
 import openai
 
-openai.api_key = "sk-fEQToFD2mChYgzeB8vu9pDKC457afnK4zbHEbCUbTJT3BlbkFJon8Mt5BClgQ63_aRQ6Jm0-jb3QkqFfaBVZV9uj8KAA"
+openai.api_key="sk-3kZrUdCT-cv0seS-5_6eFp0eQ79IAaST8O5aOZzb4YT3BlbkFJI4mKrS_lrFKOvxBkSmKTWJ-P_s8Dy_ddeXO206ej4A"
 print("使用的 API Key:", openai.api_key)  # 測試是否正確設置
 
 @app.route('/get-profile-data', methods=['GET'])
@@ -1182,8 +1199,8 @@ def get_exercise_stats():
 def add_exercise():
     try:
         # 驗證用戶是否已登入
-        member_id = session.get('id')
-        if not member_id:
+        user_id = session.get('id')
+        if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
 
         # 接收前端數據
@@ -1194,20 +1211,19 @@ def add_exercise():
         exercise_name = data.get('exercise_name')
         sets = data.get('sets')
         reps = data.get('reps')
-        day_of_week = data.get('day_of_week')
 
-        if not all([exercise_name, sets, reps, day_of_week]):
+        if not all([exercise_name, sets, reps]):
             return jsonify({'error': 'Missing required fields'}), 400
 
         # 插入到數據庫
         connection = get_db_connection()
         cursor = connection.cursor()
         query = """
-            INSERT INTO user_exercises (member_id, exercise_name, sets, reps, date)
+            INSERT INTO user_exercises (user_id, exercise_name, sets, reps, date)
             VALUES (%s, %s, %s, %s, %s)
         """
-        today_date = datetime.now().date()
-        cursor.execute(query, (member_id, exercise_name, sets, reps, today_date))
+        today_date = datetime.now().date()  # 獲取當天日期
+        cursor.execute(query, (user_id, exercise_name, sets, reps, today_date))
         connection.commit()
         cursor.close()
         connection.close()

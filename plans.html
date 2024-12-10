@@ -31,20 +31,17 @@
         <section class="schedule">
             <h2>今日訓練清單</h2>
             <table id="exerciseTable">
-                <tr>
-                    <th>動作</th>
-                    <th>組數</th>
-                    <th>次數</th>
-                </tr>
+                
             </table>
+            
         </section>
     
         <!-- 動作記錄功能 -->
         <section id="recordedExercisesSection">
             <h3>動作紀錄</h3>
             <form id="exerciseForm">
-                <label for="exerciseSelect">選擇動作:</label>
-                <select id="exerciseSelect">
+                <label for="exerciseNameInput">動作名稱:</label>
+                <select id="exerciseNameInput">
                     <option value="pushup">伏地挺身</option>
                     <option value="squat">深蹲</option>
                     <option value="plank">平板支撐</option>
@@ -55,6 +52,7 @@
                 <input type="number" id="repsInput" min="1">
                 <button type="button" id="addExerciseButton">加入清單</button>
             </form>
+            
             
     
             <table id="recordedExerciseTable">
@@ -87,7 +85,7 @@
 
     <script src="/static/scripts/plans.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 
 </body>

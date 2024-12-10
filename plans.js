@@ -141,6 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("未找到相應的健身計劃。");
             exerciseTable.innerHTML = `<tr><td>未找到適合的健身計劃</td></tr>`;
         }
+        
     }
 
 
@@ -173,12 +174,10 @@ function loadProfileData() {
         .then(response => response.json())
         .then(data => {
             const { height, weight_today: weight, waist, hip } = data;
-
             if (!height || !weight || !waist || !hip) {
-                exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入完整的今日數據（包含腰圍與臀圍）</td></tr>`;
+                exerciseTable.innerHTML = `<tr><td>請到個人頁面輸入完整數據</td></tr>`;
             } else {
                 const bodyType = calculateBodyType(height, weight, waist, hip);
-                
                 if (typeof loadExercisePlan === 'function') {
                     loadExercisePlan(bodyType, dayOfWeek);
                 } else {
@@ -187,9 +186,9 @@ function loadProfileData() {
             }
         })
         .catch(error => {
-            console.error("獲取使用者資料時發生錯誤:", error);
-            exerciseTable.innerHTML = `<tr><td>無法加載健身計畫，請稍後再試。</td></tr>`;
+            console.error("獲取用戶數據時發生錯誤:", error);
         });
+
 }
 
     fetch('/get-plan-status', { method: 'GET' })
@@ -206,14 +205,7 @@ function loadProfileData() {
             exerciseTable.innerHTML = `<tr><td>未能加載健身計劃，請稍後再試</td></tr>`;
         });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const addExerciseButton = document.getElementById('addExerciseButton');
-            if (addExerciseButton) {
-                addExerciseButton.addEventListener('click', handleAddExercise);
-            } else {
-                console.error('addExerciseButton 未找到，請檢查 HTML 是否包含該元素');
-            }
-        });
+        
 
 // 計算 BMI 和 WHR 來判斷體型
 function calculateBodyType(height, weight, waist, hip) {
@@ -395,8 +387,7 @@ function calculateBodyType(height, weight, waist, hip) {
     // 計劃完成後的處理
     function completeWorkout() {
         exerciseTable.innerHTML = `<div class="complete-message">今日計畫已完成！</div>`;
-
-        // 更新後端的完成狀態
+    
         fetch('/complete-plan', {
             method: 'POST',
             headers: {
@@ -404,10 +395,19 @@ function calculateBodyType(height, weight, waist, hip) {
             },
             body: JSON.stringify({ completed: true }),
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.status === 'success') {
                 console.log('計劃狀態已更新至後端。');
+            } else if (data.status === 'already_completed') {
+                console.log('計劃已經完成。');
+            } else {
+                console.error('未知錯誤:', data.error);
             }
         })
         .catch(error => {
@@ -420,6 +420,8 @@ function calculateBodyType(height, weight, waist, hip) {
 document.addEventListener('DOMContentLoaded', () => {
     const exerciseSelect = document.getElementById('exerciseSelect');
     const chartCanvas = document.getElementById("exerciseChart");
+    
+
 
     if (!chartCanvas) {
         console.error("Canvas element with ID #exerciseChart not found.");
@@ -593,10 +595,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const exerciseNameInput = document.getElementById('exerciseNameInput');
         const setsInput = document.getElementById('setsInput');
         const repsInput = document.getElementById('repsInput');
-        const dayOfWeekInput = document.getElementById('dayOfWeekInput');
     
         // 檢查所有元素是否正確加載
-        if (!exerciseNameInput || !setsInput || !repsInput || !dayOfWeekInput) {
+        if (!exerciseNameInput || !setsInput || !repsInput) {
             console.error('表單元素未找到，請檢查 HTML 結構是否正確');
             Swal.fire('錯誤', '無法找到表單元素，請檢查頁面結構', 'error');
             return;
@@ -606,10 +607,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const exerciseName = exerciseNameInput.value.trim();
         const sets = parseInt(setsInput.value, 10);
         const reps = parseInt(repsInput.value, 10);
-        const dayOfWeek = dayOfWeekInput.value.trim();
     
         // 驗證輸入值
-        if (!exerciseName || isNaN(sets) || isNaN(reps) || !dayOfWeek) {
+        if (!exerciseName || isNaN(sets) || isNaN(reps)) {
             Swal.fire('錯誤', '請填寫所有欄位', 'error');
             return;
         }
@@ -624,7 +624,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 exercise_name: exerciseName,
                 sets: sets,
                 reps: reps,
-                day_of_week: dayOfWeek,
             }),
         })
             .then(response => {
