@@ -447,7 +447,7 @@ button:hover {
 }
 .sidebar {
     position: fixed;
-    top: 250px; /* 調整廣告區域的頂部間距 */
+    top: 150px; /* 調整廣告區域的頂部間距 */
     width: 220px; /* 調整為較小的寬度 */
     height: auto; /* 高度自適應圖片大小 */
     background-color: #b0b0b0;
@@ -465,7 +465,7 @@ button:hover {
 .sidebar.right {
     right: 20px; /* 右側廣告的距離 */
     position: fixed; /* 確保廣告區域固定在右側 */
-    top: 250px; /* 廣告區域的位置（可微調） */
+    top: 200px; /* 廣告區域的位置（可微調） */
     width: 200px; /* 廣告區域的寬度 */
     text-align: center;
 }

@@ -1086,11 +1086,11 @@ def get_profile_data():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # 獲取當天最新數據
+        # 獲取最近一筆數據，不限於當天
         cursor.execute('''
-            SELECT height, weight_today, waist, hip, waist_hip_ratio
+            SELECT height, weight_today, waist, hip, waist_hip_ratio, DATE(date) as record_date
             FROM user_fitness_data
-            WHERE user_id = %s AND DATE(date) = CURDATE()
+            WHERE user_id = %s
             ORDER BY date DESC
             LIMIT 1
         ''', (user_id,))
@@ -1099,6 +1099,7 @@ def get_profile_data():
         cursor.close()
         connection.close()
 
+        # 若無數據，返回空值
         if not profile_data:
             profile_data = {
                 "height": None,
@@ -1106,12 +1107,14 @@ def get_profile_data():
                 "waist": None,
                 "hip": None,
                 "waist_hip_ratio": None,
+                "record_date": None,
             }
 
         return jsonify(profile_data)
     except Exception as e:
         app.logger.error(f"Error in get-profile-data: {e}")
         return jsonify({'error': 'Server error occurred'}), 500
+
 
 
 

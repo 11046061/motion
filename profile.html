@@ -27,15 +27,16 @@
     </header>
     <main>
         {% if session.logged_in %}
-        <!-- 頭像、名字和設定按鈕 -->
-        <div class="profile-header">
-            <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="頭貼" class="avatar">
-            <div>
+        <div class="profile-container">
+        <!-- 頭像和名字 -->
+        <div class="profile-header-in-container">
+            <div class="avatar-and-name">
+                <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="頭貼" class="avatar">
                 <h2>{{ session.username }}</h2>
             </div>
-            <div class="dropdown">
+            <!-- 設定按鈕 -->
+            <div class="profile-settings">
                 <button class="settings-button" onclick="showModal()">設定</button>
-                <!-- Modal with Delete Account and Logout Options -->
                 <div class="modal" id="settingsModal">
                     <div class="modal-content">
                         <form id="delete-form" action="{{ url_for('delete_member') }}" method="POST">
@@ -44,19 +45,16 @@
                         <form id="logout-form" action="{{ url_for('logout') }}" method="POST">
                             <button type="submit">登出</button>
                         </form>
-                        <button onclick="closeModal()">關閉</button> <!-- Close button -->
+                        <button onclick="closeModal()">關閉</button>
                     </div>
                 </div>
-
             </div>
         </div>
-
-        
-
-        <!-- 新增白底框包圍個人數據和BMI圖表 -->
-        <div class="profile-container">
+    
+        <!-- 健身數據區域 -->
             <div class="fitness-data">
                 <h3>個人健身數據</h3>
+
                 <form id="profileForm">
                     <label for="height">身高 (公分):</label>
                     <input type="number" id="height" name="height" placeholder="輸入您的身高">
@@ -82,7 +80,7 @@
                 <!-- 新增腰臀紀錄圖 -->
                 <div>
                     <h3>腰臀比紀錄</h3>
-                    <p class="waist-hip-note">正常區間為：男生 < 0.9、女生 < 0.8</p>
+                    <p class="waist-hip-note">腰臀比正常為 < 0.9</0.9></p>
                     <canvas id="waistHipChart"></canvas>
                 </div>
                 <div>

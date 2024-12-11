@@ -18,10 +18,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             // 更新輸入框
-            document.getElementById('height').value = data.height || ''; 
-            document.getElementById('weight').value = data.weight_today || '';
-            document.getElementById('waist').value = data.waist || '';
-            document.getElementById('hip').value = data.hip || '';
+            document.getElementById('height').value = Math.round(data.height) || '';
+        document.getElementById('weight').value = Math.round(data.weight_today) || '';
+        document.getElementById('waist').value = Math.round(data.waist) || '';
+        document.getElementById('hip').value = Math.round(data.hip) || '';
             loadBMIHistory();
             loadWeightHistory();
             updateTargetWeight();
@@ -32,46 +32,54 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // 儲存按鈕事件
-    document.getElementById('profileForm').addEventListener('submit', function (event) {
-        event.preventDefault(); // 阻止表單默認提交行為
-    
-        const height = parseFloat(document.getElementById('height').value) || null;
-        const weight_today = parseFloat(document.getElementById('weight').value) || null;
-        const waist = parseFloat(document.getElementById('waist').value) || null;
-        const hip = parseFloat(document.getElementById('hip').value) || null;
-    
-        if (!height || !weight_today) {
-            Swal.fire('錯誤', '請正確輸入身高和體重', 'error');
-            return;
-        }
-    
-        // 發送資料到後端
-        fetch('/update-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ height, weight_today, waist, hip }),
+document.getElementById('profileForm').addEventListener('submit', function (event) {
+    event.preventDefault(); // 阻止表單默認提交行為
+
+    const height = parseFloat(document.getElementById('height').value) || null;
+    const weight_today = parseFloat(document.getElementById('weight').value) || null;
+    const waist = parseFloat(document.getElementById('waist').value) || null;
+    const hip = parseFloat(document.getElementById('hip').value) || null;
+
+    if (!height || !weight_today) {
+        Swal.fire('錯誤', '請正確輸入身高和體重', 'error');
+        return;
+    }
+
+    // 發送資料到後端
+    fetch('/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ height, weight_today, waist, hip }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('成功', '資料已更新', 'success');
+                // 更新輸入框資料
+                document.getElementById('height').value = data.data.height || '';
+                document.getElementById('weight').value = data.data.weight_today || '';
+                document.getElementById('waist').value = data.data.waist || '';
+                document.getElementById('hip').value = data.data.hip || '';
+
+                // 更新最後保存日期
+                const today = new Date();
+                const lastUpdateMessage = `數據最後更新於：${formatDate(today.toISOString().split('T')[0])}`;
+                document.querySelector('.fitness-data').insertAdjacentHTML(
+                    'beforeend',
+                    `<p>${lastUpdateMessage}</p>`
+                );
+
+                // 刷新圖表數據
+                loadBMIHistory();
+                loadWeightHistory();
+                fetchAndRenderWaistHipChart();
+            } else {
+                Swal.fire('錯誤', data.error || '資料更新失敗', 'error');
+            }
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 更新輸入框資料
-                    document.getElementById('height').value = data.data.height || '';
-                    document.getElementById('weight').value = data.data.weight_today || '';
-                    document.getElementById('waist').value = data.data.waist || '';
-                    document.getElementById('hip').value = data.data.hip || '';
-    
-                    // 刷新圖表數據
-                    loadBMIHistory();
-                    loadWeightHistory();
-                    fetchAndRenderWaistHipChart();
-    
-                    Swal.fire('成功', '資料已更新', 'success');
-                } else {
-                    Swal.fire('錯誤', data.error || '資料更新失敗', 'error');
-                }
-            })
-            .catch(error => Swal.fire('錯誤', '無法更新資料，請稍後再試', 'error'));
-    });
+        .catch(error => Swal.fire('錯誤', '無法更新資料，請稍後再試', 'error'));
+});
+
     
     
     
