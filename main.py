@@ -310,6 +310,26 @@ def homepage():
         flash('Please log in to view this page.', 'error')
         return redirect(url_for('login'))
     
+    # 左側廣告清單
+    left_ads = [
+        {"title": "啞鈴廣告", "image": "images/健身啞鈴廣告.jpg", "link": "https://24h.pchome.com.tw/prod/DEBYLG-A900GPLSF"},
+        {"title": "健身環", "image": "images/健身環廣告.jpg", "link": "https://24h.pchome.com.tw/prod/DEBY2C-A900BFHXT"},
+        {"title": "滑輪繩", "image": "images/滑輪繩.png", "link": "https://www.inhandsports.com/products/diy--pulley-tricep-rope?gad_source=1&gclid=EAIaIQobChMIkImZx9ueigMV79EWBR23jSL6EAYYCCABEgL9C_D_BwE&variation=60ec17e8bf4fbc5484f490e7"}
+
+    ]
+
+    # 右側廣告清單
+    right_ads = [
+        {"title": "瑜珈墊廣告", "image": "images/健身瑜珈墊廣告.png", "link": "https://m.momoshop.com.tw/goods.momo?i_code=12221717"},
+        {"title": "蛋白粉廣告", "image": "images/蛋白粉廣告.png", "link": "https://shopee.tw/%F0%9F%94%A5%E6%B0%B8%E4%B9%85%E5%85%8D%E9%81%8B-ON-%E9%87%91%E7%89%8C-5%E7%A3%85-%E4%B9%B3%E6%B8%85-%E8%9B%8B%E7%99%BD-%E9%80%81%E6%90%96%E6%90%96%E6%9D%AF-%E4%BD%8E%E7%86%B1%E9%87%8F-%E5%81%A5%E8%BA%AB-%E9%81%8B%E5%8B%95-%E7%87%9F%E9%A4%8A%E5%93%81-%E7%87%9F%E9%A4%8A%E8%A3%9C%E7%B5%A6-%E9%87%8D%E9%87%8F%E8%A8%93%E7%B7%B4-%E8%9B%8B%E7%99%BD%E7%B2%89-%E9%AB%98%E8%9B%8B%E7%99%BD-i.2381542.852279997?sp_atk=f4bb633d-2542-474e-8fc5-ccabfcf8ba5a&xptdk=f4bb633d-2542-474e-8fc5-ccabfcf8ba5a"},
+        {"title": "雞胸肉廣告", "image": "images/健身雞胸肉.png", "link": "https://www.itsonion.com.tw/products/%E6%96%B0%E6%89%8B%E5%93%81%E5%9A%90%E7%B5%84"}
+
+    ]
+
+    # 隨機選擇廣告
+    selected_left_ad = random.choice(left_ads)
+    selected_right_ad = random.choice(right_ads)
+    
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute("""
@@ -338,22 +358,60 @@ def homepage():
 
     cursor.close()
     connection.close()
-    return render_template('homepage.html', posts=posts)
+    return render_template('homepage.html', left_ads=[selected_left_ad], right_ads=[selected_right_ad])
 
 
 
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_IMAGE_SIZE = 25 * 1024 * 1024  # 25MB for images
+MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100MB for videos
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
 
-#post
 def allowed_file(filename):
+    """檢查檔案副檔名是否允許"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def file_size_allowed(file):
+def file_size_allowed(file, file_type):
+    """根據檔案類型檢查檔案大小"""
     file.seek(0, os.SEEK_END)
     file_length = file.tell()
-    file.seek(0)  # 重置指標以便後續讀取
-    return file_length <= MAX_FILE_SIZE
+    file.seek(0)  # 重置檔案指標
+    if file_type == 'image':
+        return file_length <= MAX_IMAGE_SIZE
+    elif file_type == 'video':
+        return file_length <= MAX_VIDEO_SIZE
+    return False
+
+def process_file(file, file_type, post_id, cursor):
+    """統一處理圖片或影片的儲存與檢查"""
+    if not allowed_file(file.filename):
+        logging.warning(f"{file_type.capitalize()} '{file.filename}' 被拒絕，原因：檔案類型不允許")
+        return {"status": "error", "message": f"{file_type.capitalize()} file type not allowed"}
+    if not file_size_allowed(file, file_type):
+        size_limit = MAX_IMAGE_SIZE if file_type == 'image' else MAX_VIDEO_SIZE
+        logging.warning(f"{file_type.capitalize()} '{file.filename}' 被拒絕，原因：檔案大小超過 {size_limit / (1024 * 1024)}MB")
+        return {"status": "error", "message": f"{file_type.capitalize()} file size exceeds {size_limit / (1024 * 1024)}MB"}
+
+    try:
+        file_filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_FOLDER, file_filename)
+        file.save(file_path)
+        
+        # 插入資料庫
+        if file_type == 'image':
+            cursor.execute("""
+                INSERT INTO post_images (post_id, image_path)
+                VALUES (%s, %s)
+            """, (post_id, file_filename))
+        elif file_type == 'video':
+            cursor.execute("""
+                INSERT INTO post_videos (post_id, video_path)
+                VALUES (%s, %s)
+            """, (post_id, file_filename))
+    except Exception as e:
+        logging.error(f"儲存 {file_type} '{file.filename}' 發生錯誤: {e}")
+        return {"status": "error", "message": f"Failed to save {file_type.capitalize()}"}
+
+    return {"status": "success"}
 
 @app.route('/add_post', methods=['POST'])
 def add_post():
@@ -378,31 +436,19 @@ def add_post():
         if 'images' in request.files:
             images = request.files.getlist('images')
             for image in images:
-                if image and allowed_file(image.filename) and file_size_allowed(image):
-                    image_filename = secure_filename(image.filename)
-                    image_path = os.path.join(UPLOAD_FOLDER, image_filename)
-                    image.save(image_path)
-                    cursor.execute("""
-                        INSERT INTO post_images (post_id, image_path)
-                        VALUES (%s, %s)
-                    """, (post_id, image_filename))
-                else:
-                    return jsonify({"status": "error", "message": "Image file not allowed or exceeds size limit"}), 400
+                result = process_file(image, 'image', post_id, cursor)
+                if result["status"] == "error":
+                    connection.rollback()  # 若失敗則回滾
+                    return jsonify(result), 400
 
         # 處理影片
         if 'videos' in request.files:
             videos = request.files.getlist('videos')
             for video in videos:
-                if video and allowed_file(video.filename) and file_size_allowed(video):
-                    video_filename = secure_filename(video.filename)
-                    video_path = os.path.join(UPLOAD_FOLDER, video_filename)
-                    video.save(video_path)
-                    cursor.execute("""
-                        INSERT INTO post_videos (post_id, video_path)
-                        VALUES (%s, %s)
-                    """, (post_id, video_filename))
-                else:
-                    return jsonify({"status": "error", "message": "Video file not allowed or exceeds size limit"}), 400
+                result = process_file(video, 'video', post_id, cursor)
+                if result["status"] == "error":
+                    connection.rollback()  # 若失敗則回滾
+                    return jsonify(result), 400
 
         connection.commit()
         cursor.close()
@@ -412,6 +458,8 @@ def add_post():
     except Exception as e:
         logging.error(f'Unexpected error: {e}')
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
 
 @app.route('/get_posts', methods=['GET'])
 def get_posts():
@@ -956,19 +1004,16 @@ from datetime import datetime, date  # 確保導入正確的日期模組
 @app.route('/get-plan-status', methods=['GET'])
 def get_plan_status():
     try:
-        # 獲取用戶 ID
         user_id = session.get('id')
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
 
-        # 資料庫連接
+        today_date = datetime.now().date()
+
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # 獲取今天的日期
-        today_date = datetime.now().date()
-
-        # 查詢當天的計劃完成狀態
+        # 查詢今日的計畫完成狀態
         cursor.execute("""
             SELECT completed
             FROM plans
@@ -976,19 +1021,16 @@ def get_plan_status():
         """, (user_id, today_date))
         result = cursor.fetchone()
 
-        # 關閉連接
         cursor.close()
         connection.close()
 
-        # 如果查詢結果為空
-        if not result:
-            return jsonify({'completed': False})  # 表示當天無計劃記錄
-
-        # 返回查詢結果
-        return jsonify({'completed': bool(result['completed'])})
+        # 返回完成狀態，預設為 False
+        return jsonify({'completed': bool(result['completed']) if result else False})
     except Exception as e:
         app.logger.error(f"Error in /get-plan-status: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Unable to fetch plan status.'}), 500
+
+
 
 
 
@@ -1000,38 +1042,32 @@ def get_plan_status():
 
 @app.route('/complete-plan', methods=['POST'])
 def complete_plan():
-    user_id = session.get('id')
-    if not user_id:
-        return jsonify({'error': 'User not logged in'}), 401
-
-    today_date = datetime.now().date()  # 獲取當前日期
-
     try:
+        user_id = session.get('id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        today_date = datetime.now().date()
+
         connection = get_db_connection()
         cursor = connection.cursor()
 
-        # 確認當天是否已有完成記錄
-        cursor.execute('SELECT completed FROM plans WHERE user_id = %s AND date = %s', (user_id, today_date))
-        plan = cursor.fetchone()
-
-        if plan and plan[0]:  # 如果完成記錄已存在
-            return jsonify({'status': 'already_completed'})
-
-        # 插入或更新 plans 表中的完成狀態
-        cursor.execute('''
+        # 確保資料庫更新完成狀態
+        cursor.execute("""
             INSERT INTO plans (user_id, date, completed)
-            VALUES (%s, %s, TRUE)
-            ON DUPLICATE KEY UPDATE completed = TRUE
-        ''', (user_id, today_date))
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE completed = VALUES(completed)
+        """, (user_id, today_date, True))
+
         connection.commit()
+        cursor.close()
+        connection.close()
 
         return jsonify({'status': 'success'})
     except Exception as e:
         app.logger.error(f"Error in /complete-plan: {e}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        connection.close()
+        return jsonify({'error': 'Unable to mark plan as complete.'}), 500
+
 
 
 
@@ -1050,15 +1086,14 @@ def get_profile_data():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # 查詢當日最新數據
-        today = date.today()
+        # 獲取當天最新數據
         cursor.execute('''
             SELECT height, weight_today, waist, hip, waist_hip_ratio
             FROM user_fitness_data
-            WHERE user_id = %s AND DATE(date) = %s
+            WHERE user_id = %s AND DATE(date) = CURDATE()
             ORDER BY date DESC
             LIMIT 1
-        ''', (user_id, today))
+        ''', (user_id,))
         profile_data = cursor.fetchone()
 
         cursor.close()
@@ -1077,6 +1112,7 @@ def get_profile_data():
     except Exception as e:
         app.logger.error(f"Error in get-profile-data: {e}")
         return jsonify({'error': 'Server error occurred'}), 500
+
 
 
 
@@ -1108,17 +1144,17 @@ def update_profile():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # 更新或插入資料邏輯
-        cursor.execute('''
+        # 刪除當日所有舊記錄
+        cursor.execute("""
+            DELETE FROM user_fitness_data
+            WHERE user_id = %s AND date = CURDATE()
+        """, (user_id,))
+
+        # 插入新記錄
+        cursor.execute("""
             INSERT INTO user_fitness_data (user_id, height, weight_today, waist, hip, waist_hip_ratio, date)
             VALUES (%s, %s, %s, %s, %s, %s, CURDATE())
-            ON DUPLICATE KEY UPDATE
-                height = VALUES(height),
-                weight_today = VALUES(weight_today),
-                waist = VALUES(waist),
-                hip = VALUES(hip),
-                waist_hip_ratio = VALUES(waist_hip_ratio)
-        ''', (user_id, height, weight_today, waist, hip, waist_hip_ratio))
+        """, (user_id, height, weight_today, waist, hip, waist_hip_ratio))
 
         connection.commit()
         cursor.close()
@@ -1134,7 +1170,11 @@ def update_profile():
             }
         })
     except Exception as e:
+        app.logger.error(f"Error in update-profile: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
 
 
 
@@ -1247,11 +1287,14 @@ def get_today_exercises():
 
         # 獲取用戶數據
         cursor.execute("""
-            SELECT height, weight_today, waist, hip 
-            FROM user_fitness_data 
+            SELECT height, weight_today, waist, hip, waist_hip_ratio
+            FROM user_fitness_data
             WHERE user_id = %s AND DATE(date) = CURDATE()
+            ORDER BY date DESC
+            LIMIT 1
         """, (user_id,))
         user_data = cursor.fetchone()
+
 
         if not user_data or not all([user_data['height'], user_data['weight_today'], user_data['waist'], user_data['hip']]):
             return jsonify({'error': '今日數據未完整輸入'}), 400
@@ -1358,6 +1401,76 @@ def get_today_exercises():
         ]
     },
     'overweight': {
+        '星期一': [
+            {'exercise': '步行', 'image': '步行.png', 'video': '深蹲.mp4'},
+            {'exercise': '牽拉運動', 'image': '牽拉運動.png', 'video': '俯臥撐.mp4'},
+            {'exercise': '高抬腿', 'image': '高抬腿.png', 'video': '平板支撐.mp4'}
+        ],
+        '星期二': [
+            {'exercise': '靠牆深蹲', 'image': '深蹲.png', 'video': '深蹲.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'},
+            {'exercise': '波比跳', 'image': '波比跳.png', 'video': '波比跳.mp4'}
+        ],
+        '星期三': [
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '深蹲', 'image': '深蹲.png', 'video': '登山跑.mp4'},
+            {'exercise': '側步蹲', 'image': '側步蹲.png', 'video': '登山跑.mp4'}
+        ],
+        '星期四': [
+            {'exercise': '跪姿俯臥撐', 'image': '俯臥撐.png', 'video': '俯臥撐.mp4'},
+            {'exercise': '平板支撐', 'image': '平板支撐.png', 'video': '平板支撐.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'}
+        ],
+        '星期五': [
+            {'exercise': '深蹲', 'image': '深蹲.png', 'video': '深蹲.mp4'},
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '開合跳', 'image': '開合跳.png', 'video': '開合跳.mp4'}
+        ],
+        '星期六': [
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '跳繩', 'image': '跳繩.png', 'video': '登山跑.mp4'},
+            {'exercise': '側棒式支撐', 'image': '側棒式支撐.png', 'video': '登山跑.mp4'}
+        ],
+        '星期日': [
+            {'exercise': '休息日：放鬆並進行輕度伸展', 'image': None, 'video': None}
+        ]
+    },
+    'thin_high_whr': {
+        '星期一': [
+            {'exercise': '步行', 'image': '步行.png', 'video': '深蹲.mp4'},
+            {'exercise': '牽拉運動', 'image': '牽拉運動.png', 'video': '俯臥撐.mp4'},
+            {'exercise': '高抬腿', 'image': '高抬腿.png', 'video': '平板支撐.mp4'}
+        ],
+        '星期二': [
+            {'exercise': '靠牆深蹲', 'image': '深蹲.png', 'video': '深蹲.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'},
+            {'exercise': '波比跳', 'image': '波比跳.png', 'video': '波比跳.mp4'}
+        ],
+        '星期三': [
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '波比跳.mp4'},
+            {'exercise': '深蹲', 'image': '深蹲.png', 'video': '波比跳.mp4'},
+            {'exercise': '側步蹲', 'image': '側步蹲.png', 'video': '波比跳.mp4'}
+        ],
+        '星期四': [
+            {'exercise': '跪姿俯臥撐', 'image': '俯臥撐.png', 'video': '俯臥撐.mp4'},
+            {'exercise': '平板支撐', 'image': '平板支撐.png', 'video': '平板支撐.mp4'},
+            {'exercise': '臀橋', 'image': '臀橋.png', 'video': '臀橋.mp4'}
+        ],
+        '星期五': [
+            {'exercise': '深蹲', 'image': '深蹲.png', 'video': '深蹲.mp4'},
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '開合跳', 'image': '開合跳.png', 'video': '開合跳.mp4'}
+        ],
+        '星期六': [
+            {'exercise': '登山跑', 'image': '登山跑.png', 'video': '登山跑.mp4'},
+            {'exercise': '跳繩', 'image': '跳繩.png', 'video': '登山跑.mp4'},
+            {'exercise': '側棒式支撐', 'image': '側棒式支撐.png', 'video': '登山跑.mp4'}
+        ],
+        '星期日': [
+            {'exercise': '休息日：放鬆並進行輕度伸展', 'image': None, 'video': None}
+        ]
+    },
+    'average_high_whr': {
         '星期一': [
             {'exercise': '步行', 'image': '步行.png', 'video': '深蹲.mp4'},
             {'exercise': '牽拉運動', 'image': '牽拉運動.png', 'video': '俯臥撐.mp4'},

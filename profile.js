@@ -32,11 +32,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // 儲存按鈕事件
-    saveButton.addEventListener('click', function (event) {
-        event.preventDefault();
+    document.getElementById('profileForm').addEventListener('submit', function (event) {
+        event.preventDefault(); // 阻止表單默認提交行為
     
-        const height = parseFloat(heightInput.value) || null;
-        const weight_today = parseFloat(weightInput.value) || null;
+        const height = parseFloat(document.getElementById('height').value) || null;
+        const weight_today = parseFloat(document.getElementById('weight').value) || null;
         const waist = parseFloat(document.getElementById('waist').value) || null;
         const hip = parseFloat(document.getElementById('hip').value) || null;
     
@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
     
+        // 發送資料到後端
         fetch('/update-profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -54,14 +55,15 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => {
                 if (data.success) {
                     // 更新輸入框資料
-                    heightInput.value = data.data.height || '';
-                    weightInput.value = data.data.weight_today || '';
+                    document.getElementById('height').value = data.data.height || '';
+                    document.getElementById('weight').value = data.data.weight_today || '';
                     document.getElementById('waist').value = data.data.waist || '';
                     document.getElementById('hip').value = data.data.hip || '';
     
-                    // 立即刷新圖表
+                    // 刷新圖表數據
                     loadBMIHistory();
                     loadWeightHistory();
+                    fetchAndRenderWaistHipChart();
     
                     Swal.fire('成功', '資料已更新', 'success');
                 } else {
@@ -70,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => Swal.fire('錯誤', '無法更新資料，請稍後再試', 'error'));
     });
+    
     
     
     
