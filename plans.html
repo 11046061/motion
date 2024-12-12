@@ -27,15 +27,16 @@
     </header>
     
     <main>
+        <h2>今日訓練清單</h2>
+
         <!-- 今日訓練表格 -->
         <section class="schedule">
-            <h2>今日訓練清單</h2>
             <table id="exerciseTable">
                 
             </table>
             
         </section>
-    
+        <div class="layout-container">
         <!-- 動作記錄功能 -->
         <section id="recordedExercisesSection">
             <h3>動作紀錄</h3>
@@ -66,27 +67,31 @@
                     <th>次數</th>
                 </tr>
             </table>
+            <div id="exerciseDescription">
+                <p>計畫是根據每天算出的 BMI 及腰臀比來抓取過輕、過重或適中預訂計畫：</p>
+                <ul>
+                    <li>過輕計畫：BMI &lt; 18.5 且腰臀比 &lt; 0.9</li>
+                    <li>適中計畫：18.5 &lt;= BMI &lt;= 25 且腰臀比 &lt; 0.9</li>
+                    <li>過重計畫：BMI &gt; 25 且腰臀比 &gt; 0.9</li>
+                </ul>
+                <p>一個動作一分鐘，中間休息三十秒。</p>
+            </div>
         </section>
-        <section id="exerciseChartSection">
-            <canvas id="exerciseChart" style="max-width: 600px; max-height: 400px;"></canvas>
+        <section id="chartSection">
+            <div id="exerciseChartSection">
+                <h3>動作圖表</h3>
+                <canvas id="exerciseChart"></canvas>
+            </div>
+            <div id="dailyCalorieChartSection">
+                <h3>每日卡路里消耗圖表</h3>
+                <canvas id="dailyCalorieChart"></canvas>
+            </div>
         </section>
+        
+        
         
     </main>
     
-    
-    
-    
-    <div class="plan-description">
-        計畫是根據每天算出的BMI及腰臀比來抓取<br>
-        過輕、過重或適中的預訂計畫<br>
-        過輕計畫：BMI < 18.5 且腰臀比 < 0.9<br>
-        適中計畫：18.5 <= BMI <= 25 且腰臀比 < 0.9<br>
-        過重計畫：BMI > 25 且腰臀比 > 0.9<br>
-        一個動作一分鐘，中間休息三十秒。
-    </div>
-    
-    
-
     <script src="/static/scripts/plans.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

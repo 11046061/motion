@@ -26,6 +26,7 @@
     </header>
 
     <main style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        <!-- 頁籤 -->
         <div class="tabs">
             <div class="tab active" data-tab="search-tab">搜尋</div>
             <div class="tab" data-tab="history-tab">紀錄</div>
@@ -34,88 +35,137 @@
         <!-- 搜尋區域 -->
         <div id="search-tab" class="tab-content active">
             <div class="search-container">
-                <input type="text" placeholder="搜尋..." class="search-input">
+                <input type="text" placeholder="搜尋您的問題..." class="search-input">
                 <button class="search-button">
                     <img src="{{ url_for('static', filename='images/search.png') }}" alt="Search Icon" class="search-icon">
                     搜尋
                 </button>
             </div>
-            <div id="results" class="results"></div>
+            <div id="results" class="results">請在上方輸入問題後按搜尋</div>
         </div>
+        
+        <!-- AI 小幫手提示 -->
         <div id="ai-helper" class="ai-helper">
             這裡是AI小幫手，可以詢問運動或飲食相關的問題
         </div>
         
-        <!-- 歷史記錄區域 -->
+        <!-- 歷史記錄與文字雲 -->
         <div id="history-tab" class="tab-content">
             <div class="history-container">
                 <h2>您的歷史紀錄</h2>
+                <div class="history-items">
+                    {% if history %}
+                        {% for item in history %}
+                            <div class="history-item">
+                                <p><strong>問題:</strong> {{ item[0] }}</p>
+                                <p><strong>回答:</strong> {{ item[1] }}</p>
+                                <p class="timestamp">{{ item[2] }}</p>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>未找到歷史紀錄。</p>
+                    {% endif %}
+                </div>
+
                 <h2>個用戶的熱搜文字雲:</h2>
                 <div class="image-wrapper" style="text-align: center;">
-                    <img src="{{ url_for('static', filename='images/wordcloud_image.png') }}" alt="Word Cloud" id="wordcloud-image">
+                    <img src="/get-wordcloud?member_id={{ user_id }}" alt="Word Cloud" id="wordcloud">
                 </div>
-                {% if history %}
-                    {% for item in history %}
-                        <div class="history-item">
-                            <p><strong>問題:</strong> {{ item[0] }}</p>
-                            <p><strong>回答:</strong> {{ item[1] }}</p>
-                            <p class="timestamp">{{ item[2] }}</p>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>未找到歷史紀錄。</p>
-                {% endif %}
+                <h3>AI 文字雲建議：</h3>
+                <p id="ai-suggestions"></p>
             </div>
         </div>
     </main>
 
+    <input type="hidden" id="user-id" value="{{ user_id }}">
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-    // 頁籤切換邏輯
-    document.querySelectorAll('.tab').forEach(function(tab) {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.tab').forEach(function(t) {
-                t.classList.remove('active');
+        document.addEventListener('DOMContentLoaded', function () {
+            // 頁籤切換邏輯
+            document.querySelectorAll('.tab').forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const target = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById(target).classList.add('active');
+                });
             });
-            document.querySelectorAll('.tab-content').forEach(function(content) {
-                content.classList.remove('active');
-            });
-            this.classList.add('active');
-            document.getElementById(this.getAttribute('data-tab')).classList.add('active');
 
-            // 控制AI小幫手的顯示和隱藏
-            if (this.getAttribute('data-tab') === 'search-tab') {
-                document.getElementById('ai-helper').style.display = 'block';
-            } else {
-                document.getElementById('ai-helper').style.display = 'none';
-            }
-        });
-    });
+            // 自動刷新文字雲圖片
+            const userId = document.getElementById('user-id').value;
+            const wordcloudImage = document.getElementById('wordcloud');
+            wordcloudImage.src = `/get-wordcloud?member_id=${userId}&time=${new Date().getTime()}`;
 
+            // 搜尋按鈕點擊事件
+            document.querySelector('.search-button').addEventListener('click', function () {
+                const userInput = document.querySelector('.search-input').value.trim();
+                const userId = document.getElementById('user-id').value;
 
-            document.querySelector('.search-button').addEventListener('click', function() {
-                var userInput = document.querySelector('.search-input').value;
-                if (userInput.trim() !== '') {
-                    fetch('/search', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt: userInput })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        var resultsDiv = document.getElementById('results');
-                        resultsDiv.innerHTML = '';
-                        if (data.ai_answer) {
-                            resultsDiv.innerHTML = data.ai_answer.replace(/<br\s*\/?>/gi, ' ');
-                        } else {
-                            resultsDiv.innerHTML = '未找到結果';
-                        }
-                    });
+                if (!userInput) {
+                    document.getElementById('results').innerHTML = '請輸入問題';
+                    return;
                 }
-            });
-            
 
+                fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: userInput }) // 傳送問題
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`伺服器回應失敗，狀態碼: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.ai_answer) {
+                        document.getElementById('results').innerHTML = data.ai_answer;
+
+                        // 更新文字雲圖片
+                        if (data.wordcloud_path) {
+                            document.getElementById('wordcloud').src = data.wordcloud_path + '?' + new Date().getTime();
+                        }
+                    } else {
+                        document.getElementById('results').innerHTML = data.error || '未找到結果';
+                    }
+                })
+                .catch(error => {
+                    console.error('錯誤:', error);
+                    document.getElementById('results').innerHTML = '伺服器發生錯誤，請稍後再試。';
+                });
+            });
+
+            // 自動生成文字雲並獲取 AI 建議
+            fetch(`/generate-wordcloud/${userId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`伺服器回應失敗，狀態碼: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 更新文字雲圖片
+                    if (data.wordcloud_path) {
+                        const imgUrl = data.wordcloud_path + '?' + new Date().getTime(); // 防止緩存
+                        document.getElementById('wordcloud').src = imgUrl;
+                    } else {
+                        document.getElementById('wordcloud').alt = "文字雲生成失敗";
+                    }
+
+                    // 顯示 AI 建議
+                    if (data.ai_suggestion) {
+                        document.getElementById('ai-suggestions').innerText = data.ai_suggestion;
+                    } else {
+                        document.getElementById('ai-suggestions').innerText = "未能獲取 AI 建議，請稍後再試。";
+                    }
+                })
+                .catch(error => {
+                    console.error('錯誤:', error);
+                    document.getElementById('ai-suggestions').innerText = '伺服器發生錯誤，無法加載建議。';
+                });
         });
-    </script>
+        </script>
 </body>
 </html>

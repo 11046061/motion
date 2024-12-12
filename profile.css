@@ -53,48 +53,68 @@ nav ul li a.active::after {
 
 main {
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    flex-direction: column;
-    max-width: 1500px; /* 設置內容最大寬度 */
-    margin: 0 auto; /* 居中對齊 */
+    align-items: center; /* 垂直居中對齊 */
+    justify-content: space-between; /* 左右分布 */
+    flex-direction: row;
+    max-width: 1500px;
+    margin: 0 auto;
     padding: 20px;
+    gap: 20px; /* 頭貼區域與健身數據區域的間距 */
 }
 
-h1, h3 {
-    text-align: center;
+h3 {
+    font-size: 25px; /* 保持標題大小 */
+    font-weight: bold; /* 加粗標題文字 */
+    text-align: center; /* 標題置中 */
+    margin-bottom: 5px; /* 縮小與下方內容的距離 */
 }
 
-.profile-header {
+
+
+
+
+/* 調整頭貼和名字的位置 */
+.avatar-and-name {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    width: 100%; /* 避免過度拉伸 */
-    margin-bottom: 20px;
+    gap: 15px;
+    transform: translate(20px, 10px); /* 向右下角移動 */
+}
+.avatar {
+    width: 130px; /* 頭貼大小 */
+    height: 130px;
+    border-radius: 50%; /* 圓形頭像 */
 }
 
-.avatar {
-    border-radius: 50%;
-    width: 150px;
-    height: 150px;
+.avatar-and-name h2 {
+    font-size: 24px; /* 名字字體大小 */
+    font-weight: bold;
+    margin: 0;
 }
 
 .follow-stats {
     display: flex;
     gap: 20px;
 }
-
+/* 右上角按鈕 */
+.profile-settings {
+    display: flex;
+    align-items: center;
+}
+/* 調整設定按鈕的位置 */
 .settings-button {
-    padding: 10px 20px;
-    background-color: #ff6666; /* 淺紅色 */
+    padding: 15px 20px;
+    font-size: 16px;
+    background-color: #ff6666;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
+    transform: translate(-70px, 15px); /* 向左下角移動 */
 }
 
 .settings-button:hover {
-    background-color: #ff4c4c; /* 深紅色 */
+    background-color: #cc3333;
 }
 
 .profile-body {
@@ -170,14 +190,32 @@ h1, h3 {
 .modal-content button:hover {
     background-color: #0056b3;
 }
-
+/* 調整灰色區塊的內邊距和高度 */
 .profile-container {
-    background-color: rgb(207, 207, 207);
+    background-color: rgb(207, 207, 207); /* 灰色背景 */
     border-radius: 10px;
     padding: 20px;
     color: black;
-    width: 95%; /* 增加容器寬度 */
-    margin: 20px auto;
+    display: flex;
+    flex-direction: column; /* 垂直排列頭貼、名字、健身數據 */
+    gap: 20px; /* 元素之間的間距 */
+    align-items: center; /* 水平居中 */
+}
+
+.profile-header-in-container {
+    display: flex;
+    justify-content: space-between; /* 頭貼和按鈕兩側分布 */
+    align-items: center; /* 垂直居中 */
+    width: 100%; /* 撐滿灰色背景的寬度 */
+    margin-bottom: -130px; /* 與下方健身數據間距 */
+}
+
+
+/* 健身數據和圖表的整體對齊 */
+.fitness-and-charts-container {
+    margin-top: 0; /* 與頭貼容器對齊 */
+    display: flex;
+    flex-direction: column;
 }
 
 .charts-container {
@@ -230,3 +268,45 @@ h1, h3 {
     color: rgb(255, 6, 6);       /* 設置字體顏色為黃色 */
     font-weight: bold;   /* 字體加粗 */
 }
+
+.fitness-data h3 {
+    font-size: 25px; /* 保持標題字體大小 */
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px; /* 調整與輸入框的距離 */
+}
+
+
+
+/* 調整輸入框外的文字字體 */
+.fitness-data label {
+    font-size: 16px; /* 調整文字大小 */
+    font-weight: bold; /* 加粗文字 */
+    margin-right: 10px; /* 增加文字與輸入框的距離 */
+}
+
+/* 減小輸入框寬度 */
+.fitness-data input[type="number"] {
+    width: 80px; /* 減小輸入框寬度 */
+    padding: 5px; /* 增加內邊距讓文字更舒適 */
+    font-size: 14px; /* 調整輸入框內文字的字體大小 */
+    border: 1px solid #ccc; /* 增加邊框 */
+    border-radius: 5px; /* 圓角 */
+    text-align: center; /* 讓數字居中顯示 */
+}
+
+/* 儲存按鈕樣式 */
+.fitness-data button {
+    font-size: 14px; /* 調整按鈕文字大小 */
+    padding: 8px 15px; /* 增加按鈕內邊距 */
+    border-radius: 5px; /* 增加按鈕圓角 */
+    background-color: #007bff; /* 設置按鈕背景色 */
+    color: white; /* 按鈕文字顏色 */
+    border: none; /* 去除按鈕邊框 */
+    cursor: pointer; /* 鼠標指針變為手型 */
+}
+
+.fitness-data button:hover {
+    background-color: #0056b3; /* 調整按鈕懸停時的顏色 */
+}
+

@@ -1229,6 +1229,18 @@ def get_exercise_stats():
         ''', (user_id,))
         stats = cursor.fetchall()
         cursor.close()
+        # 若無數據，返回預設格式
+        if not stats:
+            return jsonify({
+                'stats': [],
+                'labels': ['無記錄'],
+                'datasets': [{
+                    'label': '卡路里消耗',
+                    'data': [0],
+                    'borderColor': 'rgba(255, 99, 132, 1)',
+                    'tension': 0.4
+                }]
+            })
         return jsonify({'stats': stats})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1255,27 +1267,77 @@ def add_exercise():
         exercise_name = data.get('exercise_name')
         sets = data.get('sets')
         reps = data.get('reps')
+        calories = data.get('calories')  # 從前端接收卡路里數據
 
-        if not all([exercise_name, sets, reps]):
+        if not all([exercise_name, sets, reps, calories]):
             return jsonify({'error': 'Missing required fields'}), 400
 
         # 插入到數據庫
         connection = get_db_connection()
         cursor = connection.cursor()
         query = """
-            INSERT INTO user_exercises (user_id, exercise_name, sets, reps, date)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO user_exercises (user_id, exercise_name, sets, reps, calories, date)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
         today_date = datetime.now().date()  # 獲取當天日期
-        cursor.execute(query, (user_id, exercise_name, sets, reps, today_date))
+        cursor.execute(query, (user_id, exercise_name, sets, reps, calories, today_date))
         connection.commit()
         cursor.close()
         connection.close()
 
-        return jsonify({'success': True, 'message': 'Exercise added successfully'})
+        return jsonify({"status": "success", "message": "Exercise added successfully"}), 200
     except Exception as e:
-        app.logger.error(f"Error in /add-exercise: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        logging.error(f"新增動作時發生錯誤: {e}")
+        return jsonify({"status": "error", "message": "伺服器內部錯誤"}), 500
+
+
+
+
+@app.route('/get-daily-calorie-summary', methods=['GET'])
+def get_daily_calorie_summary():
+    try:
+        user_id = session.get('id')
+        if not user_id:
+            return jsonify({"dates": [], "calories": []}), 200
+
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT DATE(date) AS date, SUM(calories) AS total_calories
+            FROM user_exercises
+            WHERE user_id = %s
+            GROUP BY DATE(date)
+            ORDER BY DATE(date) ASC
+        """
+        cursor.execute(query, (user_id,))
+        results = cursor.fetchall()
+
+        dates = [row['date'].strftime('%Y-%m-%d') for row in results] if results else []
+        calories = [row['total_calories'] for row in results] if results else []
+
+        cursor.close()
+        connection.close()
+
+        # 返回空數據時的預設值
+        if not results:
+            return jsonify({"dates": [], "calories": []}), 200
+
+        return jsonify({"dates": dates, "calories": calories}), 200
+    except Exception as e:
+        logging.error(f"獲取每日卡路里數據失敗: {e}")
+        return jsonify({"error": "伺服器內部錯誤"}), 500
+
+
+
+
+
+
+
+
+
+
+
 
     
 @app.route('/get-today-exercises', methods=['GET'])

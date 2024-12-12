@@ -331,7 +331,7 @@ function loadProfileData() {
                 <td>
                     <div class="exercise-container" style="text-align: center;">
                         <h3 id="exerciseName">${exerciseObj.exercise}</h3>
-                        <video id="exerciseVideo" controls width="600">
+                        <video id="exerciseVideo" controls loop width="600">
                             <source src="/static/videos/${exerciseObj.video}" type="video/mp4">
                             您的瀏覽器不支援此影片。
                         </video>
@@ -426,24 +426,23 @@ function loadProfileData() {
         currentExerciseIndex++;
     
         if (currentExerciseIndex < exercises.length) {
-            const nextExerciseObj = exercises[currentExerciseIndex];  // 獲取下一個動作
+            const nextExerciseObj = exercises[currentExerciseIndex]; // 獲取下一個動作
     
             // 隱藏暫停按鈕
             const pauseButton = document.getElementById('pauseButton');
-            pauseButton.style.display = 'none';  // 在休息期間隱藏暫停按鈕
+            pauseButton.style.display = 'none'; // 在休息期間隱藏暫停按鈕
     
             // 顯示休息提示和下一個動作名稱
             let restSeconds = 30;
             const display = document.getElementById(`timerDisplay-${dayOfWeek}`);
             display.textContent = `休息 ${restSeconds} 秒 - 下一個動作為：${nextExerciseObj.exercise}`;
     
-            restInterval = setInterval(() => {
+            const restInterval = setInterval(() => {
                 restSeconds--;
                 display.textContent = `休息 ${restSeconds} 秒 - 下一個動作為：${nextExerciseObj.exercise}`;
     
                 if (restSeconds <= 0) {
                     clearInterval(restInterval);
-                    pauseButton.style.display = 'inline';  // 顯示暫停按鈕
     
                     // 更新動作名稱
                     const exerciseName = document.getElementById('exerciseName');
@@ -451,22 +450,33 @@ function loadProfileData() {
     
                     // 更新影片
                     const video = document.getElementById('exerciseVideo');
-                    const videoSource = video.querySelector('source'); // 找到 <video> 裡的 <source>
+                    const videoSource = video.querySelector('source');
+    
                     if (videoSource) {
-                        videoSource.src = `/static/videos/${nextExerciseObj.video}`;
-                        video.load();  // 加載新影片
+                        videoSource.src = `/static/videos/${nextExerciseObj.video}`; // 更新影片路徑
+                        video.load(); // 加載新影片
+    
+                        // 確保影片加載完成後自動播放
+                        video.onloadeddata = function () {
+                            video.play();
+                        };
                     } else {
                         console.error("未找到 <source> 元素，無法更新影片");
                     }
     
+                    // 顯示暫停按鈕
+                    pauseButton.style.display = 'inline';
+    
                     // 開始下一個動作的計時
-                    startTimer(dayOfWeek, 60);  // 開始下一個動作的計時，從 60 秒開始
+                    startTimer(dayOfWeek, 60); // 下一個動作計時從 60 秒開始
                 }
             }, 1000);
         } else {
-            completeWorkout();  // 所有動作完成後的處理
+            completeWorkout(); // 所有動作完成後的處理
         }
     }
+    
+    
     
     
     
@@ -555,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateMultiDayChart(formattedData);
         })
     .catch(error => console.error("加載訓練數據時出錯:", error));
-
+});
 
         
 
@@ -622,10 +632,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const reps = parseInt(repsInput.value, 10);
     
         // 驗證輸入值
-        if (!exerciseName || isNaN(sets) || isNaN(reps)) {
-            Swal.fire('錯誤', '請填寫所有欄位', 'error');
+        if (!exerciseName || isNaN(sets) || isNaN(reps) || sets <= 0 || reps <= 0) {
+            Swal.fire('錯誤', '請填寫有效的動作名稱、組數和次數', 'error');
             return;
         }
+    
+        // 前端計算每個動作的卡路里消耗
+        const calorieData = {
+            pushup: 5,
+            squat: 6,
+            plank: 4,
+            burpee: 10,
+            mountain_climber: 8,
+            jumping_jack: 7,
+            jump_squat: 9
+        };
+        const caloriesBurned = sets * reps * (calorieData[exerciseName] || 0);
     
         // 發送請求到後端
         fetch('/add-exercise', {
@@ -637,25 +659,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 exercise_name: exerciseName,
                 sets: sets,
                 reps: reps,
+                calories: caloriesBurned // 將卡路里消耗發送到後端
             }),
         })
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                Swal.fire('錯誤', data.error, 'error');
+            if (data.status === 'success') {
+                alert('動作已成功新增');
+                fetchAndRenderExercises(); // 更新表格和多日圖表
+                fetchAndRenderDailyCalorieChart(); // 更新每日卡路里圖表
             } else {
-                Swal.fire('成功', '動作已新增至清單', 'success');
-                fetchAndRenderExercises(); // 更新表格
-                fetch('/get-exercise-stats') // 更新圖表
-                    .then(res => res.json())
-                    .then(updateMultiDayChart)
-                    .catch(err => console.error('更新圖表時發生錯誤:', err));
+                alert('新增失敗');
             }
         })
+        
         .catch(error => {
             Swal.fire('錯誤', '無法新增動作，請稍後再試', 'error');
+            console.error('新增動作時發生錯誤:', error);
         });
     }
+    
     
     // 綁定按鈕事件
     document.addEventListener('DOMContentLoaded', function () {
@@ -681,18 +704,22 @@ document.addEventListener('DOMContentLoaded', () => {
     
         const ctx = chartCanvas.getContext('2d'); // 獲取上下文
     
-        fetch('/get-exercises')
-            .then(response => response.json())
-            .then(data => {
-                if (data.exercises) {
-                    renderExerciseTable(data.exercises); // 渲染表格
-                    updateMultiDayChart({ labels: data.labels, datasets: data.datasets, ctx: ctx }); // 更新圖表
-                } else {
-                    console.error('無法獲取動作列表:', data.error || '未知錯誤');
-                }
-            })
-            .catch(error => console.error('獲取動作列表時發生錯誤:', error));
-    }
+        fetch('/get-exercises') // 從後端獲取當日動作
+        .then(response => response.json())
+        .then(data => {
+            if (!data.exercises || data.exercises.length === 0) {
+                console.warn('無法獲取當日動作或數據為空，顯示空白表格');
+                renderExerciseTable([]); // 清空表格
+                return;
+            }
+
+            renderExerciseTable(data.exercises); // 渲染表格
+        })
+        .catch(error => {
+            console.error('獲取當日動作列表時發生錯誤:', error);
+            renderExerciseTable([]); // 清空表格
+        });
+}
     
     
     
@@ -742,11 +769,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.success) {
                     alert('刪除成功');
-                    fetchAndRenderExercises(); // 更新表格
-                    fetch('/get-exercise-stats') // 更新圖表
-                        .then(res => res.json())
-                        .then(updateMultiDayChart)
-                        .catch(err => console.error('更新圖表時發生錯誤:', err));
+                    fetchAndRenderExercises(); // 更新表格和多日圖表
+                    fetchAndRenderDailyCalorieChart(); // 更新每日卡路里圖表
                 } else {
                     alert('刪除失敗');
                 }
@@ -849,23 +873,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
     
         console.log("更新圖表的數據:", data);
-        window.exerciseChart = new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: data.labels, // 日期標籤保持不變
-                datasets: translatedDatasets, // 使用翻譯後的 datasets
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: {
-                        title: { display: true, text: "日期" }, // x 軸標題
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: "總訓練量（次數）" }, // y 軸標題
-                    },
-                },
+        // 確保 datasets 和 labels 正確映射
+    window.exerciseChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: data.labels,
+            datasets: data.datasets.map(dataset => ({
+                label: translateExerciseName(dataset.label),
+                data: dataset.data || [], // 防止數據為 undefined
+                borderColor: dataset.borderColor || getRandomColor(),
+                tension: 0.4,
+            }))
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { title: { display: true, text: "日期" } },
+                y: { title: { display: true, text: "總訓練量（次數）" }, beginAtZero: true }
+            }
             },
         });
     }
@@ -897,29 +922,85 @@ document.addEventListener('DOMContentLoaded', () => {
         return { labels, datasets };
     }
     
+      
+    // 頁面加載時自動調用
+    document.addEventListener('DOMContentLoaded', fetchAndRenderDailyCalorieChart);
+      
     
+    window.dailyCalorieChart = null;
+    function fetchAndRenderDailyCalorieChart() {
+        const dailyCalorieChartCanvas = document.getElementById('dailyCalorieChart');
+        if (!dailyCalorieChartCanvas) {
+            console.error('未找到每日卡路里圖表的 Canvas 元素');
+            return;
+        }
     
+        const ctx = dailyCalorieChartCanvas.getContext('2d');
     
+        // 銷毀舊圖表（如果存在）
+        if (window.dailyCalorieChart && typeof window.dailyCalorieChart.destroy === 'function') {
+            try {
+                window.dailyCalorieChart.destroy();
+            } catch (error) {
+                console.error('銷毀舊圖表時發生錯誤:', error);
+            }
+        }
     
-
-    /**
-     * 翻譯動作名稱
-     */
-    function translateExerciseName(name) {
-        const translations = {
-            pushup: '伏地挺身',
-            squat: '深蹲',
-            plank: '平板支撐',
-            burpee: '波比跳',
-            mountain_climber: '登山跑',
-            jumping_jack: '開合跳',
-            jump_squat: '跳躍深蹲',
-            // 添加其他動作名稱
-        };
-        return translations[name] || name; // 如果找不到翻譯，返回原名稱
+        fetch('/get-daily-calorie-summary')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.dates || !data.calories || data.dates.length === 0) {
+                    console.warn("每日卡路里數據為空，顯示空圖表");
+                    data.dates = ["無記錄"];
+                    data.calories = [0];
+                }
+    
+                // 初始化新圖表
+                window.dailyCalorieChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.dates,
+                        datasets: [{
+                            label: '每日卡路里消耗 (卡)',
+                            data: data.calories,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '日期'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: '卡路里'
+                                },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('獲取每日卡路里數據時發生錯誤:', error);
+                Swal.fire('錯誤', '無法加載每日卡路里數據', 'error');
+            });
     }
-    
-    
-});
+
+
 
 

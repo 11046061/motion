@@ -50,20 +50,41 @@ nav ul li a.active::after {
     left: 0;
 }
 
+/* 主要內容區域居中對齊 */
 main {
     display: flex;
-    flex-direction: column; /* 改為垂直排列 */
+    flex-direction: column;
     align-items: center;
     padding: 20px;
-    gap: 20px; /* 增加上下間距 */
+    gap: 20px;
+    background-color: #d3d3d3; /* 內容區域背景淺灰色 */
+    border-radius: 10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); /* 添加陰影效果 */
+    max-width: 1400px; /* 最大寬度限制 */
+    margin: 20px auto; /* 垂直和水平居中 */
 }
-
+.layout-container {
+    display: flex;
+    flex-direction: row; /* 水平排列 */
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 20px;
+}
 .schedule {
-    width: 70%; /* 表格寬度 */
-    margin: 0 auto;
+    background-color: #333; /* 設置黑色背景 */
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%; /* 拉寬到90%寬度 */
+    margin: 0 auto; /* 置中 */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+/* 標題樣式 */
+h2 {
+    color: #000; /* 字體顏色變黑 */
+    font-size: 28px; /* 增加字體大小 */
     text-align: center;
 }
-
 table {
     width: 100%;
     border-collapse: collapse;
@@ -167,12 +188,12 @@ body img:not(.logo img) {
 }
 
 #recordedExercisesSection {
-    margin: 20px auto;
+    flex: 1; /* 左側動作紀錄區域 */
     padding: 20px;
     background-color: #333;
     border-radius: 10px;
-    max-width: 800px;
-    z-index: 3; /* 提升層級，確保不會被其他元素覆蓋 */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 45%; /* 限制寬度比例 */
 }
 
 #recordedExerciseTable {
@@ -194,20 +215,24 @@ body img:not(.logo img) {
     margin-right: 10px;
     text-align: left;
 }
-
-#exerciseChartSection {
-    margin: 20px auto;
+#chartSection {
+    flex: 1; /* 右側圖表區域 */
+    display: flex;
+    flex-direction: column; /* 垂直排列圖表 */
+    gap: 20px;
+    max-width: 50%; /* 限制寬度比例 */
+}
+#exerciseChartSection, #dailyCalorieChartSection {
+    background-color: #444;
     padding: 20px;
-    background-color: #ffffff; /* 白色背景 */
     border-radius: 10px;
-    border: 1px solid #ccc; /* 灰色邊框 */
-    max-width: 800px;
-    text-align: center;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* 添加陰影效果 */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 canvas {
     background-color: #ffffff; /* 白色背景 */
+    width: 100%;
+    height: 300px;
 }
 
 
@@ -216,4 +241,39 @@ canvas {
     height: 400px;
     margin: 0 auto;
     z-index: 2; /* 確保高於其他元素 */
+}
+#recordedExercisesSection h3,
+#exerciseChartSection h3,
+#dailyCalorieChartSection h3 {
+    text-align: center;
+}
+/* 計畫描述文字樣式 */
+#exerciseDescription {
+    background-color: #f0f0f0; /* 淺灰色背景 */
+    padding: 15px; /* 縮小內邊距 */
+    margin-top: 10px; /* 縮小與上方的距離 */
+    margin-left: 5px; /* 縮小與邊框的距離 */
+    margin-right: 5px; /* 縮小與邊框的距離 */
+    border-radius: 10px;
+    color: #000; /* 黑色文字 */
+    font-size: 17px; /* 字體大小 */
+    line-height: 1.6;
+}
+/* 動作紀錄輸入框樣式調整 */
+#exerciseForm input[type="number"],
+#exerciseForm select {
+    width: 80px; /* 縮小寬度 */
+}
+
+#exerciseForm label {
+    margin-right: 5px; /* 增加標籤與輸入框的間距 */
+}
+
+/* 動作紀錄表單置中 */
+#exerciseForm {
+    display: flex;
+    justify-content: center; /* 水平置中 */
+    align-items: center; /* 垂直置中 */
+    gap: 10px; /* 元素間距 */
+    margin-bottom: 10px; /* 與下方表格的距離 */
 }
